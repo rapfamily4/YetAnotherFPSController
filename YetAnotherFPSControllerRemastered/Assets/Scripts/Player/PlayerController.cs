@@ -12,7 +12,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
 
-
 [RequireComponent(typeof(PlayerInputHandler))]
 [RequireComponent(typeof(CapsuleCollider))]
 [RequireComponent(typeof(Rigidbody))]
@@ -33,11 +32,8 @@ public class PlayerController : MonoBehaviour {
     [Min(0f)] public float sweepDistance = 0.5f;
     public LayerMask layersToIgnore;
 
-    [Header("Crouch")]
-    [Range(0.5f, 1f)] public float crouchHeight = 0.75f;
-    [Range(0f, 1f)] public float crouchSpeed = 0.5f;
-    [Min(0f)] public float crouchTransitionSpeed = 10f;
-    public bool toggleCrouch = false;
+    [Header("Gravity")]
+    [Min(0f)] public float customGravity = 9.81f;
 
     [Header("Jump")]
     [Min(0f)] public float jumpHeight = 2f;
@@ -45,6 +41,12 @@ public class PlayerController : MonoBehaviour {
     public bool enableWallJump = true;
     public bool jumpCancelsVerticalVelocity = true;
     public bool jumpAlongGroundNormal = true;
+
+    [Header("Crouch")]
+    [Range(0.5f, 1f)] public float crouchHeight = 0.75f;
+    [Range(0f, 1f)] public float crouchSpeed = 0.5f;
+    [Min(0f)] public float crouchTransitionSpeed = 10f;
+    public bool toggleCrouch = false;
 
     [Header("Thrust")]
     [Min(0f)] public float thrustHeight = 6f;
@@ -91,8 +93,9 @@ public class PlayerController : MonoBehaviour {
         m_jumpPhase = 0;
         OnValidate();
 
-        // Freeze Rigidbody's rotation
+        // Freeze rigidbody's rotation and disable implicit gravity
         m_rigidbody.freezeRotation = true;
+        m_rigidbody.useGravity = false;
 
         // Force player's height and crouch state
         //SetCrouchState(false, true);
@@ -114,6 +117,7 @@ public class PlayerController : MonoBehaviour {
         ContactCheck();
 
         // Handle frame independent movement
+        HandleGravity();
         HandleMove();
 
         // Reset contact points' list
@@ -263,13 +267,18 @@ public class PlayerController : MonoBehaviour {
         return false;
     }
 
+    private void HandleGravity() {
+        // NOTE: Applying the gravity along the ground normal fixes the issue of slowly sliding
+        //       down a slope while not providing any movement input.
+        m_rigidbody.AddForce(-m_groundNormal * customGravity, ForceMode.Force);
+    }
+
     private void HandleMove() {
         // Retrieve input 
         Vector2 input = m_inputHandler.moveInput;
 
         // Abort if...
-        // *** remember the onSteep handling
-        if (!m_isGrounded && input.sqrMagnitude == 0) return;
+        if (!m_isGrounded && (input.sqrMagnitude == 0)) return;
 
         // Calculate target velocity
         float targetMagnitude = maxMovementSpeed * (m_isCrouching && m_isGrounded ? crouchSpeed : 1f);
@@ -372,5 +381,4 @@ public class PlayerController : MonoBehaviour {
     private Vector3 ProjectOnPlane(Vector3 vector, Vector3 planeNormal) {
         return vector - planeNormal * Vector3.Dot(vector, planeNormal);
     }
-
 }
