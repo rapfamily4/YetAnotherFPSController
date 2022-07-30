@@ -42,6 +42,7 @@ public class PlayerController : MonoBehaviour {
     [Header("Jump")]
     [Min(0f)] public float jumpHeight = 2f;
     [Min(0f)] public float maxAirJumps = 0;
+    public bool enableWallJump = true;
     public bool jumpCancelsVerticalVelocity = true;
     public bool jumpAlongGroundNormal = true;
 
@@ -63,13 +64,16 @@ public class PlayerController : MonoBehaviour {
     private int m_stepsSinceLastJump;
     private int m_jumpPhase;
     private bool m_isGrounded = false;
+    private bool m_isSteeped= false;
     private bool m_isCrouching = false;
     private List<ContactPoint> m_contactPoints;
-    private Vector3 m_contactNormal;
+    private Vector3 m_groundNormal;
+    private Vector3 m_steepNormal;
 
     // --- Private constants
     private const float k_sphereCastRadiusScale = 0.99f;
     private const float k_dotBias = 1.414214e-6f; // It mitigates floating point imprecision in UnderSlopeLimit
+    private const float k_minSteepDotProduct = -0.01f;
 
 
     // --- MonoBehaviour methods
@@ -160,6 +164,12 @@ public class PlayerController : MonoBehaviour {
         }
     }
 
+    void OnGUI()
+    {
+        string jumpPhase = "\nJump phase: " + m_jumpPhase.ToString();
+        GUILayout.Label($"<color='black'><size=14>{jumpPhase}</size></color>");
+    }
+
 
     // --- PlayerController methods
     private void ContactCheck() {
@@ -169,24 +179,33 @@ public class PlayerController : MonoBehaviour {
         
         // Reset contact state
         m_isGrounded = false;
-        m_contactNormal = Vector3.zero;
+        m_isSteeped = false;
+        m_groundNormal = Vector3.zero;
+        m_steepNormal = Vector3.zero;
 
-        // Check if grounded
+        // Check if grounded or steeped, building the respective normals
         foreach (ContactPoint cp in m_contactPoints) {
             Vector3 normal = cp.normal;
             if (UnderSlopeLimit(normal)) {
                 m_isGrounded = true;
-                m_jumpPhase = 0;
+                if (m_stepsSinceLastJump > 5) m_jumpPhase = 0;
                 m_stepsSinceLastGrounded = 0;
-                m_contactNormal += normal;
+                m_groundNormal += normal;
+            }
+            if (UnderSteepLimit(normal)) {
+                m_isSteeped = true;
+                m_steepNormal += normal;
             }
         }
 
-        if (m_isGrounded) m_contactNormal.Normalize();
+        if (m_isSteeped) m_steepNormal.Normalize();
+        else m_steepNormal = Vector3.up; // Set a default value
+
+        if (m_isGrounded) m_groundNormal.Normalize();
         else {
-            // Try to snap on ground
-            m_contactNormal = Vector3.up;  // Set a default value
-            m_isGrounded = SnapToGround(); // If true, then m_contactNormal gets updated inisde SnapToGround
+            // Try to snap on ground or ckeck a crevasse
+            m_groundNormal = Vector3.up;  // Set a default value
+            m_isGrounded = SnapToGround() || CheckCrevasse(); // If true, then m_groundNormal gets updated inisde either SnapToGround or CheckCrevasse
         }
     }
 
@@ -217,16 +236,31 @@ public class PlayerController : MonoBehaviour {
 
         // Snap to ground
         // NOTE: At this point, the player just lost contact to the ground and they're above it.
-        m_contactNormal = hitInfo.normal;
+        m_groundNormal = hitInfo.normal;
+        if (m_stepsSinceLastJump > 5) m_jumpPhase = 0;
         m_stepsSinceLastGrounded = 0;
         float dot = Vector3.Dot(m_rigidbody.velocity, hitInfo.normal);
         if (dot > 0f)
             // NOTE: Rotate onto plane only if the velocity aims along the direction of the hit
             //       normal (dot > 0). Velocity aiming behind the direction of the hit normal is
-            //       already useful for realigning the player to the ground: rotating it along
-            //       the plane would make this advantage lost.
+            //       already useful for realigning the player to the ground: we would lose this
+            //       advantage if we rotated the vector along the plane.
             m_rigidbody.velocity = (m_rigidbody.velocity - hitInfo.normal * dot).normalized * speed;
         return true;
+    }
+
+    private bool CheckCrevasse() {
+        if (!m_isSteeped) return false;
+
+        // Force ground detection if the steep normal is a valuable ground normal
+        if (UnderSlopeLimit(m_steepNormal)) {
+            m_groundNormal = m_steepNormal;
+            if (m_stepsSinceLastJump > 5) m_jumpPhase = 0;
+            m_stepsSinceLastGrounded = 0;
+            return true;
+        }
+
+        return false;
     }
 
     private void HandleMove() {
@@ -255,8 +289,8 @@ public class PlayerController : MonoBehaviour {
         if (m_isGrounded) {
             // Use velocities parallel to the contact plane (slope handling)
             // NOTE: This is crucial for getting a correct velocity difference (dv).
-            targetVelocity = targetMagnitude * ProjectOnContactPlane(targetVelocity).normalized;
-            currentVelocity = ProjectOnContactPlane(m_rigidbody.velocity);
+            targetVelocity = targetMagnitude * ProjectOnPlane(targetVelocity, m_groundNormal).normalized;
+            currentVelocity = ProjectOnPlane(m_rigidbody.velocity, m_groundNormal);
         } else {
             // Modify target velocity while airborne in order to keep horizontal speed
             float currentMagnitude = currentVelocity.magnitude;
@@ -273,15 +307,30 @@ public class PlayerController : MonoBehaviour {
     }
 
     private void HandleJump() {
-        if (!m_inputHandler.jumpStatus.started || !m_isGrounded && m_jumpPhase >= maxAirJumps) return;
+        // Detect jump input
+        if (!m_inputHandler.jumpStatus.started) return;
         
+        // Define jump direction, or return if anything is invalid
+        Vector3 jumpDirection;
+        if (m_isGrounded)
+            jumpDirection = jumpAlongGroundNormal ? m_groundNormal : Vector3.up;
+        else if (enableWallJump && m_isSteeped) {
+            m_jumpPhase = 0; // Reset jump phase only if it's a walljump (while ground check always resets)
+            jumpDirection = m_steepNormal;
+        } else if (m_jumpPhase <= maxAirJumps) {
+            if (m_jumpPhase == 0) m_jumpPhase = 1; // This prevents air jumping one extra time after falling off a surface without jumping
+            jumpDirection = jumpAlongGroundNormal ? m_groundNormal : Vector3.up;
+        } else return;
+
+        // Apply vertical bias to jump direction
+        jumpDirection = (jumpDirection + Vector3.up).normalized;
+
         // Cancel vertical velocity if needed
         if (jumpCancelsVerticalVelocity || m_rigidbody.velocity.y < 0f)
             m_rigidbody.velocity = new Vector3(m_rigidbody.velocity.x, 0f, m_rigidbody.velocity.z);
         
         // Apply jump
         float magnitude = Mathf.Sqrt(-2f * Physics.gravity.y * jumpHeight);
-        Vector3 jumpDirection = jumpAlongGroundNormal ? m_contactNormal : Vector3.up;
         m_rigidbody.AddForce(jumpDirection * magnitude, ForceMode.VelocityChange);
 
         // Update jump state
@@ -311,8 +360,17 @@ public class PlayerController : MonoBehaviour {
         return normal.y >= m_minGroundDotProduct;
     }
 
-    private Vector3 ProjectOnContactPlane(Vector3 vector) {
-        return vector - m_contactNormal * Vector3.Dot(vector, m_contactNormal);
+    private bool UnderSteepLimit(Vector3 normal)
+    {
+        // Remember that the dot product between a vector and a versor is
+        // the length of the projection of the vector along the versor.
+        // Since the up vector is along the Y axis, the following check
+        // will suffice.
+        return normal.y > k_minSteepDotProduct;
+    }
+
+    private Vector3 ProjectOnPlane(Vector3 vector, Vector3 planeNormal) {
+        return vector - planeNormal * Vector3.Dot(vector, planeNormal);
     }
 
 }

@@ -6180,17 +6180,18 @@ MonoBehaviour:
   sweepDistance: 0.5
   layersToIgnore:
     serializedVersion: 2
-    m_Bits: 8
+    m_Bits: 0
   crouchHeight: 0.75
   crouchSpeed: 0.5
   crouchTransitionSpeed: 10
   toggleCrouch: 0
   jumpHeight: 2
-  maxAirJumps: 0
+  maxAirJumps: 1
+  enableWallJump: 1
   jumpCancelsVerticalVelocity: 1
   jumpAlongGroundNormal: 1
   thrustHeight: 6
-  thrustUpImpulseFactor: 0.25
+  thrustUpImpulseFactor: 1
 --- !u!114 &2066874972
 MonoBehaviour:
   m_ObjectHideFlags: 0
