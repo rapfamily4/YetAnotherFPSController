@@ -30,6 +30,8 @@ public class PlayerController : MonoBehaviour {
     [Header("Ground Snap")]
     [Min(0f)] public float maxSnapSpeed = 7.5f;
     [Min(0f)] public float sweepDistance = 0.5f;
+
+    [Header("Collision Detection")]
     public LayerMask layersToIgnore;
 
     [Header("Gravity")]
@@ -51,7 +53,7 @@ public class PlayerController : MonoBehaviour {
     [Header("Thrust")]
     [Min(0f)] public float thrustHeight = 6f;
     [Range(0f, 1f)] public float thrustUpImpulseFactor = 1f;
-    
+
     // --- Private members
     private PlayerInputHandler m_inputHandler;
     private CapsuleCollider m_collider;
@@ -88,6 +90,7 @@ public class PlayerController : MonoBehaviour {
 
         // Setup state
         m_contactPoints = new List<ContactPoint>();
+        m_standingCapsuleHeight = m_collider.height;
         m_stepsSinceLastGrounded = 0;
         m_stepsSinceLastJump = 0;
         m_jumpPhase = 0;
@@ -98,8 +101,8 @@ public class PlayerController : MonoBehaviour {
         m_rigidbody.useGravity = false;
 
         // Force player's height and crouch state
-        //SetCrouchState(false, true);
-        //UpdateCapsuleHeight(true);
+        SetCrouchState(false, true);
+        UpdateCapsuleHeight(true);
     }
 
     void OnValidate() {
@@ -128,8 +131,8 @@ public class PlayerController : MonoBehaviour {
         // Handle input-sensible movement
         HandleLook();
         HandleJump();
+        HandleCrouch();
         //HandleThrust();
-        //HandleCrouch();
     }
 
     void LateUpdate() {
@@ -166,12 +169,6 @@ public class PlayerController : MonoBehaviour {
             Gizmos.DrawSphere(cp.point, 0.05f);
             Gizmos.DrawLine(cp.point, cp.point + cp.normal * 0.5f);
         }
-    }
-
-    void OnGUI()
-    {
-        string jumpPhase = "\nJump phase: " + m_jumpPhase.ToString();
-        GUILayout.Label($"<color='black'><size=14>{jumpPhase}</size></color>");
     }
 
 
@@ -315,6 +312,21 @@ public class PlayerController : MonoBehaviour {
         m_rigidbody.AddForce(accelerationToApply, ForceMode.Force);
     }
 
+    private void HandleLook()
+    {
+        // Retrieve input
+        Vector2 delta = m_inputHandler.lookDelta;
+
+        // Update camera angles
+        m_cameraPitch += delta.y;
+        m_cameraPitch = Mathf.Clamp(m_cameraPitch, -90f, 90f);
+        m_cameraYaw += delta.x;
+        m_cameraYaw %= 360f;
+
+        // Apply rotations
+        m_rigidbody.MoveRotation(Quaternion.Euler(0f, m_cameraYaw, 0f));
+    }
+
     private void HandleJump() {
         // Detect jump input
         if (!m_inputHandler.jumpStatus.started) return;
@@ -339,7 +351,7 @@ public class PlayerController : MonoBehaviour {
             m_rigidbody.velocity = new Vector3(m_rigidbody.velocity.x, 0f, m_rigidbody.velocity.z);
         
         // Apply jump
-        float magnitude = Mathf.Sqrt(-2f * Physics.gravity.y * jumpHeight);
+        float magnitude = Mathf.Sqrt(2f * customGravity * jumpHeight); // -2 * g * h
         m_rigidbody.AddForce(jumpDirection * magnitude, ForceMode.VelocityChange);
 
         // Update jump state
@@ -347,18 +359,58 @@ public class PlayerController : MonoBehaviour {
         m_stepsSinceLastJump = 0;
     }
 
-    private void HandleLook() {
-        // Retrieve input
-        Vector2 delta = m_inputHandler.lookDelta;
+    private void HandleCrouch() {
+        if (toggleCrouch && m_inputHandler.crouchStatus.started) SetCrouchState(!m_isCrouching);
+        else if (!toggleCrouch) SetCrouchState(m_inputHandler.crouchStatus.pressed);
+        UpdateCapsuleHeight();
+    }
 
-        // Update camera angles
-        m_cameraPitch += delta.y;
-        m_cameraPitch = Mathf.Clamp(m_cameraPitch, -90f, 90f);
-        m_cameraYaw += delta.x;
-        m_cameraYaw %= 360f;
+    private bool SetCrouchState(bool crouched, bool ignoreObstructions = false) {
+        if (crouched) m_targetCapsuleHeight = m_standingCapsuleHeight * crouchHeight;
+        else {
+            if (!ignoreObstructions) {
+                // Check for any obstructions above the player
+                // NOTE: The capsule cast doesn't reflect agent's metrics accurately
+                //       in order to prevent intersecting with the floor or walls.
+                Collider[] obstructions = Physics.OverlapCapsule(
+                    transform.position + transform.up * m_collider.radius,
+                    transform.position + transform.up * (m_standingCapsuleHeight - m_collider.radius * k_sphereCastRadiusScale),
+                    m_collider.radius * k_sphereCastRadiusScale,
+                    ~layersToIgnore
+                );
+                foreach (Collider c in obstructions)
+                    if (c != m_collider) return false;
+            }
+            m_targetCapsuleHeight = m_standingCapsuleHeight;
+        }
+        m_isCrouching = crouched;
+        return true;
+    }
 
-        // Apply rotations
-        m_rigidbody.MoveRotation(Quaternion.Euler(0f, m_cameraYaw, 0f));
+    private void UpdateCapsuleHeight(bool force = false) {
+        if (force) m_collider.height = m_targetCapsuleHeight;
+        else if (m_collider.height != m_targetCapsuleHeight) {
+            // Calculate the next height
+            float nextHeight = Mathf.Lerp(m_collider.height, m_targetCapsuleHeight, crouchTransitionSpeed * Time.deltaTime);
+
+            if (!m_isCrouching) {
+                // Check for any obstructions above the player
+                // NOTE: The capsule cast doesn't reflect agent's metrics accurately
+                //       in order to prevent intersecting with the floor or walls.
+                Collider[] obstructions = Physics.OverlapCapsule(
+                    transform.position + transform.up * m_collider.radius,
+                    transform.position + transform.up * (nextHeight - m_collider.radius * k_sphereCastRadiusScale),
+                    m_collider.radius * k_sphereCastRadiusScale,
+                    ~layersToIgnore
+                );
+                foreach (Collider c in obstructions)
+                    if (c != m_collider) return;
+            }
+
+            // Modify capsule height
+            m_collider.height = nextHeight;
+        }
+        m_collider.center = Vector3.up * m_collider.height * 0.5f;
     }
 
     private bool UnderSlopeLimit(Vector3 normal) {

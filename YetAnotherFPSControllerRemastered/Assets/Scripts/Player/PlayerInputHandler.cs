@@ -9,7 +9,7 @@ public class PlayerInputHandler : MonoBehaviour {
     // --- Action status definition
     public struct ActionStatus {
         public bool started;
-        public bool performed;
+        public bool pressed;
         public bool canceled;
     }
 
@@ -80,8 +80,11 @@ public class PlayerInputHandler : MonoBehaviour {
     }
 
     void OnGUI() {
-        string lookDelta = "Look delta (" + (mouseSmoothness > 0f ? "with" : "without") + " smoothness): " + m_mouseDelta.ToString();
-        GUILayout.Label($"<color='black'><size=14>{lookDelta}</size></color>");
+        string deltaContent = "Look delta (" + (mouseSmoothness > 0f ? "with" : "without") + " smoothness): " + m_mouseDelta.ToString();
+        GUILayout.Label($"<color='black'><size=14>{deltaContent}</size></color>");
+        ActionStatus crouch = crouchStatus;
+        string crouchContent = "Crouch status: {started = " + crouch.started + ", pressed = " + crouch.pressed + ", canceled = " + crouch.canceled + "}";
+        GUILayout.Label($"<color='black'><size=14>{crouchContent}</size></color>");
     }
 
     // --- PlayerInputHandler methods
@@ -92,7 +95,7 @@ public class PlayerInputHandler : MonoBehaviour {
 
     private void UpdateActionStatus(ref ActionStatus status, InputAction action) {
         status.started = action.WasPressedThisFrame();
-        status.performed = action.WasPerformedThisFrame();
+        status.pressed = action.IsPressed();
         status.canceled = action.WasReleasedThisFrame();
     }
 
