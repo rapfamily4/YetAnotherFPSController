@@ -308,9 +308,8 @@ public class PlayerController : MonoBehaviour {
         Vector3 accelerationToApply = (targetVelocity - currentVelocity) / Time.deltaTime; // (dv / dt) = a
         accelerationToApply = Vector3.ClampMagnitude(accelerationToApply, maxAcceleration);
 
-        // If on a steep, remove the component of the target velocity going towards the steep
-        if (!m_isGrounded && m_isSteeped && Vector3.Dot(m_steepNormal, targetDirection) < 0f)
-        {
+        // If steeped and not grounded, remove the component of the acceleration towards the steep
+        if (!m_isGrounded && m_isSteeped && Vector3.Dot(m_steepNormal, targetDirection) < 0f) {
             Vector3 right = Vector3.Cross(-m_steepNormal, Vector3.up).normalized;
             accelerationToApply = right * Vector3.Dot(right, accelerationToApply);
             // also project velocity on steep (like slope handling)?
