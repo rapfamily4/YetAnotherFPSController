@@ -87,7 +87,7 @@ public class PlayerController : MonoBehaviour {
         m_collider = GetComponent<CapsuleCollider>();
         m_rigidbody = GetComponent<Rigidbody>();
         m_camera = GetComponentInChildren<Camera>();
-
+        
         // Setup state
         m_contactPoints = new List<ContactPoint>();
         m_standingCapsuleHeight = m_collider.height;
@@ -275,7 +275,7 @@ public class PlayerController : MonoBehaviour {
         Vector2 input = m_inputHandler.moveInput;
 
         // Abort if...
-        if (!m_isGrounded && (input.sqrMagnitude == 0)) return;
+        if (!m_isGrounded && input.sqrMagnitude == 0) return;
 
         // Calculate target velocity
         float targetMagnitude = maxMovementSpeed * (m_isCrouching && m_isGrounded ? crouchSpeed : 1f);
@@ -307,6 +307,14 @@ public class PlayerController : MonoBehaviour {
         // Calculate acceleration to apply
         Vector3 accelerationToApply = (targetVelocity - currentVelocity) / Time.deltaTime; // (dv / dt) = a
         accelerationToApply = Vector3.ClampMagnitude(accelerationToApply, maxAcceleration);
+
+        // If on a steep, remove the component of the target velocity going towards the steep
+        if (!m_isGrounded && m_isSteeped && Vector3.Dot(m_steepNormal, targetDirection) < 0f)
+        {
+            Vector3 right = Vector3.Cross(-m_steepNormal, Vector3.up).normalized;
+            accelerationToApply = right * Vector3.Dot(right, accelerationToApply);
+            // also project velocity on steep (like slope handling)?
+        }
 
         // Apply force
         m_rigidbody.AddForce(accelerationToApply, ForceMode.Force);
