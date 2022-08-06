@@ -77,6 +77,7 @@ public class PlayerController : MonoBehaviour {
     // --- Private constants
     private const float k_sphereCastRadiusScale = 0.99f;
     private const float k_dotBias = 1.414214e-6f; // It mitigates floating point imprecision in UnderSlopeLimit
+    private const float k_raycastOriginBias = 0.0001f; // Useful for defining the immediate surrounding of a point.
     private const float k_minSteepDotProduct = -0.01f;
 
 
@@ -154,7 +155,7 @@ public class PlayerController : MonoBehaviour {
     private void OnDrawGizmos() {
         if (m_rigidbody == null) return;
 
-        // Draw move input
+        // Draw target direction
         Gizmos.color = Color.blue;
         Vector3 move3D = (transform.right * m_inputHandler.moveInput.x + transform.forward * m_inputHandler.moveInput.y).normalized;
         Gizmos.DrawLine(transform.position, transform.position + move3D);
@@ -169,6 +170,11 @@ public class PlayerController : MonoBehaviour {
             Gizmos.DrawSphere(cp.point, 0.05f);
             Gizmos.DrawLine(cp.point, cp.point + cp.normal * 0.5f);
         }
+    }
+
+    void OnGUI() {
+        string state = "isGrounded: " + m_isGrounded + "\nisSteeped: " + m_isSteeped + "\njumpPhase: " + m_jumpPhase;
+        GUILayout.Label($"<color='black'><size=14>{state}</size></color>");
     }
 
 
@@ -227,26 +233,36 @@ public class PlayerController : MonoBehaviour {
             transform.position + Vector3.up * m_collider.radius,
             m_collider.radius,
             Vector3.down,
-            out RaycastHit hitInfo,
+            out RaycastHit sphereHitInfo,
             sweepDistance,
             ~layersToIgnore
         )) return false;
 
         // Return if the hit normal is not below the slope limit
-        if (!UnderSlopeLimit(hitInfo.normal)) return false;
+        if (!UnderSlopeLimit(sphereHitInfo.normal)) return false;
+
+        // Return if the player is falling off a step or platform
+        // NOTE: The hit normal of the sphere cast may come from the edge of this platform,
+        //       which may be under the slope limit. This check is very similar to the one
+        //       of step detection.
+        Vector3 rayOrigin = new Vector3(transform.position.x, sphereHitInfo.point.y - k_raycastOriginBias, transform.position.z);
+        Vector3 rayDistance = ProjectOnPlane(sphereHitInfo.point - transform.position, Vector3.up);
+        if (Vector3.Dot(m_rigidbody.velocity, rayDistance) < 0f &&
+            (!Physics.Raycast(rayOrigin, rayDistance.normalized, out RaycastHit rayHitInfo, rayDistance.magnitude, ~layersToIgnore) ||
+            !UnderSlopeLimit(rayHitInfo.normal))) return false;
 
         // Snap to ground
         // NOTE: At this point, the player just lost contact to the ground and they're above it.
-        m_groundNormal = hitInfo.normal;
+        m_groundNormal = sphereHitInfo.normal;
         if (m_stepsSinceLastJump > 5) m_jumpPhase = 0;
         m_stepsSinceLastGrounded = 0;
-        float dot = Vector3.Dot(m_rigidbody.velocity, hitInfo.normal);
+        float dot = Vector3.Dot(m_rigidbody.velocity, sphereHitInfo.normal);
         if (dot > 0f)
             // NOTE: Rotate onto plane only if the velocity aims along the direction of the hit
             //       normal (dot > 0). Velocity aiming behind the direction of the hit normal is
             //       already useful for realigning the player to the ground: we would lose this
             //       advantage if we rotated the vector along the plane.
-            m_rigidbody.velocity = (m_rigidbody.velocity - hitInfo.normal * dot).normalized * speed;
+            m_rigidbody.velocity = (m_rigidbody.velocity - sphereHitInfo.normal * dot).normalized * speed;
         return true;
     }
 
@@ -345,7 +361,7 @@ public class PlayerController : MonoBehaviour {
         else if (enableWallJump && m_isSteeped) {
             m_jumpPhase = 0; // Reset jump phase only if it's a walljump (while ground check always resets)
             jumpDirection = m_steepNormal;
-        } else if (m_jumpPhase <= maxAirJumps) {
+        } else if (maxAirJumps > 0 && m_jumpPhase <= maxAirJumps) {
             if (m_jumpPhase == 0) m_jumpPhase = 1; // This prevents air jumping one extra time after falling off a surface without jumping
             jumpDirection = jumpAlongGroundNormal ? m_groundNormal : Vector3.up;
         } else return;
@@ -438,6 +454,7 @@ public class PlayerController : MonoBehaviour {
     }
 
     private Vector3 ProjectOnPlane(Vector3 vector, Vector3 planeNormal) {
+        // planeNormal assumed to be already normalized
         return vector - planeNormal * Vector3.Dot(vector, planeNormal);
     }
 }

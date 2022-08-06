@@ -79,14 +79,6 @@ public class PlayerInputHandler : MonoBehaviour {
         m_controls.Disable();
     }
 
-    void OnGUI() {
-        string deltaContent = "Look delta (" + (mouseSmoothness > 0f ? "with" : "without") + " smoothness): " + m_mouseDelta.ToString();
-        GUILayout.Label($"<color='black'><size=14>{deltaContent}</size></color>");
-        ActionStatus crouch = crouchStatus;
-        string crouchContent = "Crouch status: {started = " + crouch.started + ", pressed = " + crouch.pressed + ", canceled = " + crouch.canceled + "}";
-        GUILayout.Label($"<color='black'><size=14>{crouchContent}</size></color>");
-    }
-
     // --- PlayerInputHandler methods
     private void UpdateMouseDelta() {
         Vector2 target = new Vector2((invertXAxis ? -1f : 1f) * m_mouseDeltaRaw.x, (invertYAxis ? 1f : -1f) * m_mouseDeltaRaw.y);
