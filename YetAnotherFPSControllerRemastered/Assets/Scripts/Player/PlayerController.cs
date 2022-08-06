@@ -77,7 +77,7 @@ public class PlayerController : MonoBehaviour {
     // --- Private constants
     private const float k_sphereCastRadiusScale = 0.99f;
     private const float k_dotBias = 1.414214e-6f; // It mitigates floating point imprecision in UnderSlopeLimit
-    private const float k_raycastOriginBias = 0.0001f; // Useful for defining the immediate surrounding of a point.
+    private const float k_positionBias = 0.0001f; // Useful for defining the immediate surrounding of a point.
     private const float k_minSteepDotProduct = -0.01f;
 
 
@@ -245,11 +245,12 @@ public class PlayerController : MonoBehaviour {
         // NOTE: The hit normal of the sphere cast may come from the edge of this platform,
         //       which may be under the slope limit. This check is very similar to the one
         //       of step detection.
-        Vector3 rayOrigin = new Vector3(transform.position.x, sphereHitInfo.point.y - k_raycastOriginBias, transform.position.z);
+        Vector3 rayOrigin = new Vector3(transform.position.x, sphereHitInfo.point.y - k_positionBias, transform.position.z);
         Vector3 rayDistance = ProjectOnPlane(sphereHitInfo.point - transform.position, Vector3.up);
         if (Vector3.Dot(m_rigidbody.velocity, rayDistance) < 0f &&
+            !Physics.Raycast(transform.position, Vector3.down, transform.position.y - sphereHitInfo.point.y + k_positionBias, ~layersToIgnore) && // The next raycast has to have nothing above its origin
             (!Physics.Raycast(rayOrigin, rayDistance.normalized, out RaycastHit rayHitInfo, rayDistance.magnitude, ~layersToIgnore) ||
-            !UnderSlopeLimit(rayHitInfo.normal))) return false;
+             !UnderSlopeLimit(rayHitInfo.normal))) return false;
 
         // Snap to ground
         // NOTE: At this point, the player just lost contact to the ground and they're above it.
