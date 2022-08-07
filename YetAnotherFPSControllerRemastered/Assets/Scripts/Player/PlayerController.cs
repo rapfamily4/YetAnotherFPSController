@@ -64,6 +64,8 @@ public class PlayerController : MonoBehaviour {
     private float m_standingCapsuleHeight;
     private float m_targetCapsuleHeight;
     private float m_minGroundDotProduct;
+    private float m_jumpMagnitude;
+    private float m_thrustMagnitude;
     private int m_stepsSinceLastGrounded;
     private int m_stepsSinceLastJump;
     private int m_jumpPhase;
@@ -111,6 +113,10 @@ public class PlayerController : MonoBehaviour {
         m_minGroundDotProduct = Mathf.Cos(maxGroundAngle * Mathf.Deg2Rad);
         // Make the bias weighted with the cosine of the angle
         m_minGroundDotProduct -= k_dotBias * m_minGroundDotProduct;
+
+        // Pre-calculate jump and thrust magnitudes; -2 * g * h
+        m_jumpMagnitude = Mathf.Sqrt(2f * customGravity * jumpHeight);
+        m_thrustMagnitude = Mathf.Sqrt(2f * customGravity * thrustHeight); 
     }
 
     void FixedUpdate() {
@@ -374,8 +380,7 @@ public class PlayerController : MonoBehaviour {
             m_rigidbody.velocity = new Vector3(m_rigidbody.velocity.x, 0f, m_rigidbody.velocity.z);
         
         // Apply jump
-        float magnitude = Mathf.Sqrt(2f * customGravity * jumpHeight); // -2 * g * h
-        m_rigidbody.AddForce(jumpDirection * magnitude, ForceMode.VelocityChange);
+        m_rigidbody.AddForce(jumpDirection * m_jumpMagnitude, ForceMode.VelocityChange);
 
         // Update jump state
         m_jumpPhase++;
@@ -401,8 +406,7 @@ public class PlayerController : MonoBehaviour {
 
         // Apply thrust
         m_rigidbody.velocity = Vector3.zero;
-        float magnitude = Mathf.Sqrt(2f * customGravity * thrustHeight); // -2 * g * h
-        m_rigidbody.AddForce(thrustDirection * magnitude, ForceMode.VelocityChange);
+        m_rigidbody.AddForce(thrustDirection * m_thrustMagnitude, ForceMode.VelocityChange);
 
         // Reset counters
         m_stepsSinceLastJump = 0;
