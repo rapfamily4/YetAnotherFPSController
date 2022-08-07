@@ -7021,8 +7021,8 @@ MonoBehaviour:
   crouchSpeed: 0.5
   crouchTransitionSpeed: 10
   toggleCrouch: 0
-  thrustHeight: 6
-  thrustUpImpulseFactor: 1
+  thrustHeight: 7.5
+  thrustVerticalBias: 0.25
 --- !u!114 &2066874972
 MonoBehaviour:
   m_ObjectHideFlags: 0

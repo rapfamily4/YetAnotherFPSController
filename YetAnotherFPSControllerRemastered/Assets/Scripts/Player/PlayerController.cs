@@ -52,7 +52,7 @@ public class PlayerController : MonoBehaviour {
 
     [Header("Thrust")]
     [Min(0f)] public float thrustHeight = 6f;
-    [Range(0f, 1f)] public float thrustUpImpulseFactor = 1f;
+    [Range(0f, 1f)] public float thrustVerticalBias = 0.25f;
 
     // --- Private members
     private PlayerInputHandler m_inputHandler;
@@ -133,7 +133,7 @@ public class PlayerController : MonoBehaviour {
         HandleLook();
         HandleJump();
         HandleCrouch();
-        //HandleThrust();
+        HandleThrust();
     }
 
     void LateUpdate() {
@@ -336,8 +336,7 @@ public class PlayerController : MonoBehaviour {
         m_rigidbody.AddForce(accelerationToApply, ForceMode.Force);
     }
 
-    private void HandleLook()
-    {
+    private void HandleLook() {
         // Retrieve input
         Vector2 delta = m_inputHandler.lookDelta;
 
@@ -387,6 +386,26 @@ public class PlayerController : MonoBehaviour {
         if (toggleCrouch && m_inputHandler.crouchStatus.started) SetCrouchState(!m_isCrouching);
         else if (!toggleCrouch) SetCrouchState(m_inputHandler.crouchStatus.pressed);
         UpdateCapsuleHeight();
+    }
+
+    private void HandleThrust() {
+        if (!m_inputHandler.thrustStatus.started) return;
+
+        // Retrieve movement input
+        Vector2 input = m_inputHandler.moveInput;
+
+        // Compute thrust direction
+        Vector3 thrustDirection = (m_camera.transform.forward + transform.right * input.x).normalized;
+        float dot = Mathf.Clamp01(Vector3.Dot(transform.forward, m_camera.transform.forward));
+        thrustDirection = (thrustDirection + (transform.up * thrustVerticalBias * dot)).normalized;
+
+        // Apply thrust
+        m_rigidbody.velocity = Vector3.zero;
+        float magnitude = Mathf.Sqrt(2f * customGravity * thrustHeight); // -2 * g * h
+        m_rigidbody.AddForce(thrustDirection * magnitude, ForceMode.VelocityChange);
+
+        // Reset counters
+        m_stepsSinceLastJump = 0;
     }
 
     private bool SetCrouchState(bool crouched, bool ignoreObstructions = false) {
