@@ -3,16 +3,9 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-
+[RequireComponent(typeof(PlayerController))]
 [RequireComponent(typeof(PlayerInput))]
 public class PlayerInputHandler : MonoBehaviour {
-    // --- Action status definition
-    public struct ActionStatus {
-        public bool started;
-        public bool pressed;
-        public bool canceled;
-    }
-
     // --- Public members
     [Header("Mouse control")]
     [Range(0f, 10f)] public float mouseSensitivity = 3f;
@@ -20,26 +13,20 @@ public class PlayerInputHandler : MonoBehaviour {
     public bool invertXAxis = false;
     public bool invertYAxis = false;
 
+    [Header("Crouch behaviour")]
+    public bool toggleCrouch = false;
+
     [Header("Cursor")]
     public bool lockCursor = true;
 
-    // --- Public properties
-    public Vector2 lookDelta { get { return m_mouseDelta * m_mouseSensitivityMultiplier; } }
-    public Vector2 moveInput { get { return m_horizontalInput; } }
-    public ActionStatus jumpStatus { get { UpdateActionStatus(ref m_jumpStatus, m_controls.Player.Jump); return m_jumpStatus; } }
-    public ActionStatus crouchStatus { get { UpdateActionStatus(ref m_crouchStatus, m_controls.Player.Crouch); return m_crouchStatus; } }
-    public ActionStatus thrustStatus { get { UpdateActionStatus(ref m_thrustStatus, m_controls.Player.Thrust); return m_thrustStatus; } }
-
     // --- Private members
     private PlayerControls m_controls;
+    private PlayerController m_controller;
     private float m_mouseSensitivityMultiplier;
     private Vector2 m_mouseDelta = Vector2.zero;
     private Vector2 m_mouseDeltaRaw = Vector2.zero;
     private Vector2 m_mouseDeltaDamp = Vector2.zero;
-    private Vector2 m_horizontalInput = Vector2.zero;
-    private ActionStatus m_jumpStatus = new ActionStatus();
-    private ActionStatus m_crouchStatus = new ActionStatus();
-    private ActionStatus m_thrustStatus = new ActionStatus();
+    private Vector2 m_mouseOld = Vector2.zero;
 
     // --- Private constants
     private const float k_mouseSensitivityScale = 0.03f;
@@ -47,12 +34,23 @@ public class PlayerInputHandler : MonoBehaviour {
 
     // --- MonoBehaviour methods
     void Awake() {
-        // Setup Input System's callbacks
+        // Fetch components
         m_controls = new PlayerControls();
-        m_controls.Player.Look.performed  += ctx => m_mouseDeltaRaw = ctx.ReadValue<Vector2>();
-        m_controls.Player.Look.canceled   += ctx => m_mouseDeltaRaw = Vector2.zero;
-        m_controls.Player.Move.performed  += ctx => m_horizontalInput = ctx.ReadValue<Vector2>();
-        m_controls.Player.Move.canceled   += ctx => m_horizontalInput = Vector2.zero;
+        m_controller = GetComponent<PlayerController>();
+
+        // Move callbacks
+        m_controls.Player.Move.performed += ctx => m_controller.DoMove(ctx.ReadValue<Vector2>());
+        m_controls.Player.Move.canceled  += ctx => m_controller.DoMove(Vector2.zero);
+        // Look callbacks
+        m_controls.Player.Look.performed += ctx => m_mouseDeltaRaw = ctx.ReadValue<Vector2>();
+        m_controls.Player.Look.canceled  += ctx => m_mouseDeltaRaw = Vector2.zero;
+        // Jump callbacks
+        m_controls.Player.Jump.started += ctx => m_controller.DoJump();
+        // Thrust callbacks
+        m_controls.Player.Thrust.started += ctx => m_controller.DoThrust();
+        // Crouch callbacks
+        m_controls.Player.Crouch.started   += ctx => { if (!toggleCrouch) m_controller.DoCrouch(true); else m_controller.DoCrouch(!m_controller.isCrouching); };
+        m_controls.Player.Crouch.canceled  += ctx => { if (!toggleCrouch) m_controller.DoCrouch(false); };
 
         // Setup state
         OnValidate();
@@ -67,7 +65,7 @@ public class PlayerInputHandler : MonoBehaviour {
     }
 
     void Update() {
-        // Update mouse delta at each update; this should be enough for handling smoothness correctly
+        // Explicitely update mouse delta: this is required for handling smoothness correctly
         UpdateMouseDelta();
     }
 
@@ -81,14 +79,17 @@ public class PlayerInputHandler : MonoBehaviour {
 
     // --- PlayerInputHandler methods
     private void UpdateMouseDelta() {
+        // Store old delta
+        m_mouseOld.x = m_mouseDelta.x;
+        m_mouseOld.y = m_mouseDelta.y;
+
+        // Update delta
         Vector2 target = new Vector2((invertXAxis ? -1f : 1f) * m_mouseDeltaRaw.x, (invertYAxis ? 1f : -1f) * m_mouseDeltaRaw.y);
         m_mouseDelta = Vector2.SmoothDamp(m_mouseDelta, target, ref m_mouseDeltaDamp, mouseSmoothness);
-    }
 
-    private void UpdateActionStatus(ref ActionStatus status, InputAction action) {
-        status.started = action.WasPressedThisFrame();
-        status.pressed = action.IsPressed();
-        status.canceled = action.WasReleasedThisFrame();
+        // Move player's view
+        if (!m_mouseDelta.Equals(m_mouseOld))
+            m_controller.DoLook(m_mouseDelta * m_mouseSensitivityMultiplier);
     }
 
     private void UpdateCursorState() {
