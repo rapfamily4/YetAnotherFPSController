@@ -83,6 +83,8 @@ public class PlayerController : MonoBehaviour {
     private const float k_dotBias = 1.414214e-6f; // It mitigates floating point imprecision in UnderSlopeLimit
     private const float k_positionBias = 0.0001f; // Useful for defining the immediate surrounding of a point.
     private const float k_minSteepDotProduct = -0.01f;
+    private const int k_groundStepsThreshold = 1;
+    private const int k_jumpStepsThreshold = 5;
 
 
     // --- MonoBehaviour methods
@@ -269,15 +271,22 @@ public class PlayerController : MonoBehaviour {
         // Reset contact state
         m_isGrounded = false;
         m_isSteeped = false;
-        m_groundNormal = Vector3.zero;
-        m_steepNormal = Vector3.zero;
+
+        // Return if the player just jumped
+        if (m_stepsSinceLastJump < k_jumpStepsThreshold) {
+            m_groundNormal = Vector3.up;
+            m_steepNormal = Vector3.up;
+            return;
+        }
 
         // Check if grounded or steeped, building the respective normals
+        m_groundNormal = Vector3.zero;
+        m_steepNormal = Vector3.zero;
         foreach (ContactPoint cp in m_contactPoints) {
             Vector3 normal = cp.normal;
             if (UnderSlopeLimit(normal)) {
                 m_isGrounded = true;
-                if (m_stepsSinceLastJump > 5) m_jumpPhase = 0;
+                m_jumpPhase = 0;
                 m_stepsSinceLastGrounded = 0;
                 m_groundNormal += normal;
             }
@@ -302,7 +311,7 @@ public class PlayerController : MonoBehaviour {
         // Return if the player didn't immediately loose contact, or when they just jumped
         // NOTE: The exact moment in which the player looses contact is when m_stepsSinceLastGrounded
         //       equals 1. It'll never be 0 inside this method.
-        if (m_stepsSinceLastGrounded > 1 || m_stepsSinceLastJump < 5)
+        if (m_stepsSinceLastGrounded > k_groundStepsThreshold || m_stepsSinceLastJump < k_jumpStepsThreshold)
             return false;
 
         // Return if speed exceeds max ground snap speed
@@ -337,7 +346,7 @@ public class PlayerController : MonoBehaviour {
         // Snap to ground
         // NOTE: At this point, the player just lost contact to the ground and they're above it.
         m_groundNormal = sphereHitInfo.normal;
-        if (m_stepsSinceLastJump > 5) m_jumpPhase = 0;
+        if (m_stepsSinceLastJump >= k_jumpStepsThreshold) m_jumpPhase = 0;
         m_stepsSinceLastGrounded = 0;
         float dot = Vector3.Dot(m_rigidbody.velocity, sphereHitInfo.normal);
         if (dot > 0f)
@@ -355,7 +364,7 @@ public class PlayerController : MonoBehaviour {
         // Force ground detection if the steep normal is a valuable ground normal
         if (UnderSlopeLimit(m_steepNormal)) {
             m_groundNormal = m_steepNormal;
-            if (m_stepsSinceLastJump > 5) m_jumpPhase = 0;
+            if (m_stepsSinceLastJump >= k_jumpStepsThreshold) m_jumpPhase = 0;
             m_stepsSinceLastGrounded = 0;
             return true;
         }
