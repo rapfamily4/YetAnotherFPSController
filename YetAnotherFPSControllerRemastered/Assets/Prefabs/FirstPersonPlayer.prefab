@@ -223,8 +223,10 @@ MonoBehaviour:
   maxMovementSpeed: 5
   acceleration: 45
   maxSharpTurnMultiplier: 2
+  coyoteTime: 0.2
   airControl: 0.25
   maxGroundAngle: 45
+  airborneSharpTurn: 0
   maxSnapSpeed: 7.5
   sweepDistance: 0.75
   layersToIgnore:
@@ -239,7 +241,6 @@ MonoBehaviour:
   crouchHeight: 0.75
   crouchSpeed: 0.5
   crouchTransitionSpeed: 10
-  toggleCrouch: 0
   thrustHeight: 7.5
   thrustVerticalBias: 0.25
 --- !u!114 &6897817150033344099
@@ -258,4 +259,5 @@ MonoBehaviour:
   mouseSmoothness: 0.03
   invertXAxis: 0
   invertYAxis: 0
+  toggleCrouch: 0
   lockCursor: 1

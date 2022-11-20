@@ -23,6 +23,7 @@ public class PlayerController : MonoBehaviour {
     [Min(0f)] public float maxMovementSpeed = 5f;
     [Min(0f)] public float acceleration = 30f;
     [Min(0f)] public float maxSharpTurnMultiplier = 2f;
+    [Min(0f)] public float coyoteTime = 0.2f;
     [Range(0f, 1f)] public float airControl = 0.25f;
     [Range(0f, 90f)] public float maxGroundAngle = 45f;
     public bool airborneSharpTurn = false;
@@ -39,7 +40,7 @@ public class PlayerController : MonoBehaviour {
 
     [Header("Jump")]
     [Min(0f)] public float jumpHeight = 2f;
-    [Min(0f)] public float maxAirJumps = 0;
+    [Min(0)] public int maxAirJumps = 0;
     public bool enableWallJump = true;
     public bool jumpCancelsVerticalVelocity = true;
     public bool jumpAlongGroundNormal = true;
@@ -67,9 +68,11 @@ public class PlayerController : MonoBehaviour {
     private float m_minGroundDotProduct;
     private float m_jumpMagnitude;
     private float m_thrustMagnitude;
+    private float m_coyoteTimeCounter;
     private int m_stepsSinceLastGrounded;
     private int m_stepsSinceLastJump;
     private int m_jumpPhase;
+    private int m_thrustPhase;
     private bool m_isGrounded = false;
     private bool m_isSteeped= false;
     private bool m_isCrouching = false;
@@ -98,9 +101,11 @@ public class PlayerController : MonoBehaviour {
         m_moveInput = Vector3.zero;
         m_contactPoints = new List<ContactPoint>();
         m_standingCapsuleHeight = m_collider.height;
+        m_coyoteTimeCounter = 0f;
         m_stepsSinceLastGrounded = 0;
         m_stepsSinceLastJump = 0;
         m_jumpPhase = 0;
+        m_thrustPhase = 0;
         OnValidate();
 
         // Freeze rigidbody's rotation and disable implicit gravity
@@ -177,7 +182,7 @@ public class PlayerController : MonoBehaviour {
     }
 
     void OnGUI() {
-        string state = "isGrounded: " + m_isGrounded + "\nisSteeped: " + m_isSteeped + "\njumpPhase: " + m_jumpPhase;
+        string state = "isGrounded: " + m_isGrounded + "\nisSteeped: " + m_isSteeped + "\njumpPhase: " + m_jumpPhase + "\nthrustPhase: " + m_thrustPhase;
         GUILayout.Label($"<color='black'><size=14>{state}</size></color>");
     }
 
@@ -222,7 +227,7 @@ public class PlayerController : MonoBehaviour {
         // Apply jump
         m_rigidbody.AddForce(jumpDirection * m_jumpMagnitude, ForceMode.VelocityChange);
 
-        // Update jump state
+        // Update jump status
         m_jumpPhase++;
         m_stepsSinceLastJump = 0;
     }
@@ -237,7 +242,8 @@ public class PlayerController : MonoBehaviour {
         m_rigidbody.velocity = Vector3.zero;
         m_rigidbody.AddForce(thrustDirection * m_thrustMagnitude, ForceMode.VelocityChange);
 
-        // Reset counters
+        // Update thrust status
+        m_thrustPhase = 1;
         m_stepsSinceLastJump = 0;
     }
 
@@ -287,6 +293,8 @@ public class PlayerController : MonoBehaviour {
             if (UnderSlopeLimit(normal)) {
                 m_isGrounded = true;
                 m_jumpPhase = 0;
+                m_thrustPhase = 0;
+                m_coyoteTimeCounter = 0f;
                 m_stepsSinceLastGrounded = 0;
                 m_groundNormal += normal;
             }
@@ -296,15 +304,23 @@ public class PlayerController : MonoBehaviour {
             }
         }
 
+        // Consolidate steep normal
         if (m_isSteeped) m_steepNormal.Normalize();
         else m_steepNormal = Vector3.up; // Set a default value
 
+        // Consolidate steep normal
         if (m_isGrounded) m_groundNormal.Normalize();
         else {
             // Try to snap on ground or ckeck a crevasse
             m_groundNormal = Vector3.up;  // Set a default value
             m_isGrounded = SnapToGround() || CheckCrevasse(); // If true, then m_groundNormal gets updated inisde either SnapToGround or CheckCrevasse
         }
+
+        // If even snapping failed, check if within coyote time
+        m_coyoteTimeCounter += Time.deltaTime;
+        if (m_isSteeped && !UnderSlopeLimit(m_steepNormal)) return; // You don't want to allow jumps on too steep slopes...
+        else if (!m_isGrounded && m_coyoteTimeCounter <= coyoteTime && m_jumpPhase == 0 && m_thrustPhase == 0)
+            m_isGrounded = true;
     }
 
     private bool SnapToGround() {
@@ -346,7 +362,10 @@ public class PlayerController : MonoBehaviour {
         // Snap to ground
         // NOTE: At this point, the player just lost contact to the ground and they're above it.
         m_groundNormal = sphereHitInfo.normal;
-        if (m_stepsSinceLastJump >= k_jumpStepsThreshold) m_jumpPhase = 0;
+        if (m_stepsSinceLastJump >= k_jumpStepsThreshold) {
+            m_jumpPhase = 0;
+            m_thrustPhase = 0;
+        }
         m_stepsSinceLastGrounded = 0;
         float dot = Vector3.Dot(m_rigidbody.velocity, sphereHitInfo.normal);
         if (dot > 0f)
@@ -364,7 +383,10 @@ public class PlayerController : MonoBehaviour {
         // Force ground detection if the steep normal is a valuable ground normal
         if (UnderSlopeLimit(m_steepNormal)) {
             m_groundNormal = m_steepNormal;
-            if (m_stepsSinceLastJump >= k_jumpStepsThreshold) m_jumpPhase = 0;
+            if (m_stepsSinceLastJump >= k_jumpStepsThreshold) {
+                m_jumpPhase = 0;
+                m_thrustPhase = 0;
+            }
             m_stepsSinceLastGrounded = 0;
             return true;
         }
