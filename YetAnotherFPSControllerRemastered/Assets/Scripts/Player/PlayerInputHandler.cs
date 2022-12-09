@@ -7,7 +7,7 @@ using UnityEngine.InputSystem;
 public class PlayerInputHandler : MonoBehaviour {
     // --- Public members
     [Header("Mouse control")]
-    [Range(0f, 10f)] public float mouseSensitivity = 3f;
+    [Min(0f)] public float mouseSensitivity = 10f;
     [Range(0f, 1f)] public float mouseSmoothness = 0.03f;
     public bool invertXAxis = false;
     public bool invertYAxis = false;
@@ -21,14 +21,10 @@ public class PlayerInputHandler : MonoBehaviour {
     // --- Private members
     private PlayerControls m_controls;
     private PlayerController m_controller;
-    private float m_mouseSensitivityMultiplier;
     private Vector2 m_mouseDelta = Vector2.zero;
     private Vector2 m_mouseDeltaRaw = Vector2.zero;
     private Vector2 m_mouseDeltaDamp = Vector2.zero;
     private Vector2 m_mouseOld = Vector2.zero;
-
-    // --- Private constants
-    private const float k_mouseSensitivityScale = 0.03f;
 
 
     // --- MonoBehaviour methods
@@ -58,9 +54,6 @@ public class PlayerInputHandler : MonoBehaviour {
     }
 
     private void OnValidate() {
-        // Set multipliers
-        m_mouseSensitivityMultiplier = mouseSensitivity * k_mouseSensitivityScale;
-
         // Lock cursor
         UpdateCursorState();
     }
@@ -90,7 +83,7 @@ public class PlayerInputHandler : MonoBehaviour {
 
         // Move player's view
         if (!m_mouseDelta.Equals(m_mouseOld))
-            m_controller.DoLook(m_mouseDelta * m_mouseSensitivityMultiplier);
+            m_controller.DoLook(m_mouseDelta * mouseSensitivity);
     }
 
     private void UpdateCursorState() {

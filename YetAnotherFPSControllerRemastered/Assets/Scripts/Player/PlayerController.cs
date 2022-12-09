@@ -204,9 +204,9 @@ public class PlayerController : MonoBehaviour {
 
     public void DoLook(Vector2 delta) {
         // Update camera angles
-        m_cameraPitch += delta.y;
+        m_cameraPitch += delta.y * Time.deltaTime;
         m_cameraPitch = Mathf.Clamp(m_cameraPitch, -90f, 90f);
-        m_cameraYaw += delta.x;
+        m_cameraYaw += delta.x * Time.deltaTime;
         m_cameraYaw %= 360f;
 
         // Apply rotations
