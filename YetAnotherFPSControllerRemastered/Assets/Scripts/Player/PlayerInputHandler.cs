@@ -45,7 +45,9 @@ public class PlayerInputHandler : MonoBehaviour {
         m_controls.Player.Look.performed += ctx => m_mouseDeltaRaw = ctx.ReadValue<Vector2>();
         m_controls.Player.Look.canceled  += ctx => m_mouseDeltaRaw = Vector2.zero;
         // Jump callbacks
+        m_controls.Player.Jump.started += ctx => m_controller.SetJumpBuffer(true);
         m_controls.Player.Jump.started += ctx => m_controller.DoJump();
+        m_controls.Player.Jump.canceled += ctx => m_controller.SetJumpBuffer(false);
         // Thrust callbacks
         m_controls.Player.Thrust.started += ctx => m_controller.DoThrust();
         // Crouch callbacks

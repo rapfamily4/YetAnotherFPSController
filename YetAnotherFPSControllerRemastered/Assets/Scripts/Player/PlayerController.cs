@@ -76,6 +76,7 @@ public class PlayerController : MonoBehaviour {
     private bool m_isGrounded = false;
     private bool m_isSteeped= false;
     private bool m_isCrouching = false;
+    private bool m_isBufferingJump = false;
     private List<ContactPoint> m_contactPoints;
     private Vector3 m_groundNormal;
     private Vector3 m_steepNormal;
@@ -144,6 +145,10 @@ public class PlayerController : MonoBehaviour {
     void Update() {
         // Update casule height here to make camera movement smoother while crouching
         UpdateCapsuleHeight();
+
+        // Jump if a jump has been buffered
+        if (m_isBufferingJump && m_isGrounded)
+            DoJump();
     }
 
     void LateUpdate() {
@@ -182,7 +187,11 @@ public class PlayerController : MonoBehaviour {
     }
 
     void OnGUI() {
-        string state = "isGrounded: " + m_isGrounded + "\nisSteeped: " + m_isSteeped + "\njumpPhase: " + m_jumpPhase + "\nthrustPhase: " + m_thrustPhase;
+        string state = "isGrounded: " + m_isGrounded +
+                       "\nisSteeped: " + m_isSteeped +
+                       "\nisBufferingJump: " + m_isBufferingJump +
+                       "\njumpPhase: " + m_jumpPhase +
+                       "\nthrustPhase: " + m_thrustPhase;
         GUILayout.Label($"<color='black'><size=14>{state}</size></color>");
     }
 
@@ -230,6 +239,7 @@ public class PlayerController : MonoBehaviour {
         // Update jump status
         m_jumpPhase++;
         m_stepsSinceLastJump = 0;
+        m_isBufferingJump = false;
     }
 
     public void DoThrust() {
@@ -267,6 +277,11 @@ public class PlayerController : MonoBehaviour {
         }
         m_isCrouching = crouched;
         return true;
+    }
+
+    public void SetJumpBuffer(bool bufferState) {
+        if (m_isGrounded) return;
+        m_isBufferingJump = bufferState;
     }
 
     private void ContactCheck() {
