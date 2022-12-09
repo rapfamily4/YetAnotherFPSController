@@ -4,7 +4,6 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 
 [RequireComponent(typeof(PlayerController))]
-[RequireComponent(typeof(PlayerInput))]
 public class PlayerInputHandler : MonoBehaviour {
     // --- Public members
     [Header("Mouse control")]
