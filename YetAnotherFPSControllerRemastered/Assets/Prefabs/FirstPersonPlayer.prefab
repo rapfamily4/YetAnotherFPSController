@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 6897817149631057187}
   - component: {fileID: 6897817149631057188}
   m_Layer: 3
-  m_Name: Camera Holder
+  m_Name: CameraHolder
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -56,7 +56,7 @@ Camera:
     y: 0
     width: 1
     height: 1
-  near clip plane: 0.3
+  near clip plane: 0.1
   far clip plane: 1000
   field of view: 90
   orthographic: 0

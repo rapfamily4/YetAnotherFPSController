@@ -55,12 +55,16 @@ public class PlayerController : MonoBehaviour {
     [Range(0f, 1f)] public float thrustVerticalBias = 0.25f;
 
     // --- Public properties
-    public bool isCrouching { get { return m_isCrouching; } private set { } }
+    public bool isCrouching { get { return m_isCrouching; } }
+    public Vector2 moveInput { get { return m_moveInput; } }
+    public Vector2 lookInput { get { return m_lookInput; } }
+    public Vector3 velocity { get { return m_rigidbody.velocity; } }
 
     // --- Private members
     private CapsuleCollider m_collider;
     private Rigidbody m_rigidbody;
-    private Camera m_camera;
+    private Camera m_cameraHolder;
+    private WeaponController m_weaponController;
     private float m_cameraPitch;
     private float m_cameraYaw;
     private float m_standingCapsuleHeight;
@@ -78,9 +82,10 @@ public class PlayerController : MonoBehaviour {
     private bool m_isCrouching = false;
     private bool m_isBufferingJump = false;
     private List<ContactPoint> m_contactPoints;
+    private Vector2 m_lookInput;
+    private Vector3 m_moveInput;
     private Vector3 m_groundNormal;
     private Vector3 m_steepNormal;
-    private Vector3 m_moveInput;
 
     // --- Private constants
     private const float k_sphereCastRadiusScale = 0.99f;
@@ -96,7 +101,8 @@ public class PlayerController : MonoBehaviour {
         // Retrieve references
         m_collider = GetComponent<CapsuleCollider>();
         m_rigidbody = GetComponent<Rigidbody>();
-        m_camera = GetComponentInChildren<Camera>();
+        m_cameraHolder = GetComponentInChildren<Camera>();
+        m_weaponController = GetComponentInChildren<WeaponController>();
 
         // Setup state
         m_moveInput = Vector3.zero;
@@ -108,6 +114,10 @@ public class PlayerController : MonoBehaviour {
         m_jumpPhase = 0;
         m_thrustPhase = 0;
         OnValidate();
+
+        // Setup holding weapon
+        if (m_weaponController)
+            m_weaponController.playerController = this;
 
         // Freeze rigidbody's rotation and disable implicit gravity
         m_rigidbody.freezeRotation = true;
@@ -153,8 +163,8 @@ public class PlayerController : MonoBehaviour {
 
     void LateUpdate() {
         // Update camera's transform here
-        m_camera.transform.position = transform.position + transform.up * m_collider.height * cameraHeight;
-        m_camera.transform.eulerAngles = Vector3.up * m_cameraYaw + Vector3.right * m_cameraPitch;
+        m_cameraHolder.transform.position = transform.position + transform.up * m_collider.height * cameraHeight;
+        m_cameraHolder.transform.eulerAngles = Vector3.up * m_cameraYaw + Vector3.right * m_cameraPitch;
     }
 
     void OnCollisionEnter(Collision col) {
@@ -211,6 +221,9 @@ public class PlayerController : MonoBehaviour {
 
         // Apply rotations
         m_rigidbody.MoveRotation(Quaternion.Euler(0f, m_cameraYaw, 0f));
+
+        // Store delta; this is useful for weapon sway
+        m_lookInput = delta;
     }
 
     public void DoJump() {
@@ -244,8 +257,8 @@ public class PlayerController : MonoBehaviour {
 
     public void DoThrust() {
         // Compute thrust direction
-        Vector3 thrustDirection = (m_camera.transform.forward + transform.right * m_moveInput.x).normalized;
-        float dot = Mathf.Clamp01(Vector3.Dot(transform.forward, m_camera.transform.forward));
+        Vector3 thrustDirection = (m_cameraHolder.transform.forward + transform.right * m_moveInput.x).normalized;
+        float dot = Mathf.Clamp01(Vector3.Dot(transform.forward, m_cameraHolder.transform.forward));
         thrustDirection = (thrustDirection + (transform.up * thrustVerticalBias * dot)).normalized;
 
         // Apply thrust
