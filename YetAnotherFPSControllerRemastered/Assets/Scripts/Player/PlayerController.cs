@@ -308,8 +308,9 @@ public class PlayerController : MonoBehaviour {
         // Increment step counters
         m_stepsSinceLastGrounded++;
         m_stepsSinceLastJump++;
-        
-        // Reset contact state
+
+        // Store previous contact state and reset it
+        bool previousGrounded = m_isGrounded;
         m_isGrounded = false;
         m_isSteeped = false;
 
@@ -359,6 +360,13 @@ public class PlayerController : MonoBehaviour {
             m_jumpPhase == 0 &&
             m_thrustPhase == 0)
             m_isGrounded = true;
+
+        // Inform weapon animator about the ground state and whether the player has landed or not
+        if (m_weaponController) {
+            m_weaponController.SetGrounded(m_isGrounded);
+            if (previousGrounded != m_isGrounded)
+                m_weaponController.TriggerLand();
+        }
     }
 
     private bool SnapToGround() {
@@ -447,10 +455,13 @@ public class PlayerController : MonoBehaviour {
         Vector3 targetDirection = transform.right * m_moveInput.x + transform.forward * m_moveInput.y;
         Vector3 targetVelocity = targetDirection * targetMagnitude;
 
-        // Calculate dot product between the current horizontal velocity and the target
+        // Compute horizontal velocity and inform weapon animator about it
         Vector3 currentVelocity = new Vector3(m_rigidbody.velocity.x, 0f, m_rigidbody.velocity.z); // Consider horizontal velocity in this case
-        Vector3 currentDirection = currentVelocity.normalized;
-        float dot = Vector3.Dot(currentDirection, targetDirection);
+        if (m_weaponController)
+            m_weaponController.SetRelativeHorizontalVelocity(currentVelocity.magnitude / maxMovementSpeed);
+
+        // Calculate dot product between the current horizontal velocity and the target
+        float dot = Vector3.Dot(currentVelocity.normalized, targetDirection);
 
         // Calculate max acceleration
         float sharpTurnMultiplier = ((airborneSharpTurn || m_isGrounded) && dot < 0) ? Mathf.Lerp(1f, maxSharpTurnMultiplier, -dot) : 1f;
