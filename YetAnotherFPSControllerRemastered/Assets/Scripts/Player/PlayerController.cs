@@ -115,10 +115,6 @@ public class PlayerController : MonoBehaviour {
         m_thrustPhase = 0;
         OnValidate();
 
-        // Setup holding weapon
-        if (m_weaponController)
-            m_weaponController.playerController = this;
-
         // Freeze rigidbody's rotation and disable implicit gravity
         m_rigidbody.freezeRotation = true;
         m_rigidbody.useGravity = false;
@@ -157,8 +153,7 @@ public class PlayerController : MonoBehaviour {
         UpdateCapsuleHeight();
 
         // Jump if a jump has been buffered
-        if (m_isBufferingJump && m_isGrounded)
-            DoJump();
+        HandleBufferedJump();
     }
 
     void LateUpdate() {
@@ -210,6 +205,10 @@ public class PlayerController : MonoBehaviour {
     public void DoMove(Vector2 input) {
         // Just set move input
         m_moveInput = input;
+
+        // If player has a weapon, handle movement sway
+        if (m_weaponController)
+            m_weaponController.SetMovementTarget(input);
     }
 
     public void DoLook(Vector2 delta) {
@@ -222,7 +221,11 @@ public class PlayerController : MonoBehaviour {
         // Apply rotations
         m_rigidbody.MoveRotation(Quaternion.Euler(0f, m_cameraYaw, 0f));
 
-        // Store delta; this is useful for weapon sway
+        // If player has a weapon, handle view sway
+        if (m_weaponController)
+            m_weaponController.SetViewSwayTarget(delta.x, Mathf.Abs(m_cameraPitch) < 90f ? delta.y : 0f);
+
+        // Store delta
         m_lookInput = delta;
     }
 
@@ -253,6 +256,10 @@ public class PlayerController : MonoBehaviour {
         m_jumpPhase++;
         m_stepsSinceLastJump = 0;
         m_isBufferingJump = false;
+
+        // Trigger jump animation
+        if (m_weaponController)
+            m_weaponController.TriggerJump();
     }
 
     public void DoThrust() {
@@ -346,8 +353,11 @@ public class PlayerController : MonoBehaviour {
 
         // If even snapping failed, check if within coyote time
         m_coyoteTimeCounter += Time.deltaTime;
-        if (m_isSteeped && !UnderSlopeLimit(m_steepNormal)) return; // You don't want to allow jumps on too steep slopes...
-        else if (!m_isGrounded && m_coyoteTimeCounter <= coyoteTime && m_jumpPhase == 0 && m_thrustPhase == 0)
+        if (!m_isGrounded &&
+            (!m_isSteeped || UnderSlopeLimit(m_steepNormal)) && // You don't want to allow jumps on too steep slopes...
+            m_coyoteTimeCounter <= coyoteTime &&
+            m_jumpPhase == 0 &&
+            m_thrustPhase == 0)
             m_isGrounded = true;
     }
 
@@ -498,6 +508,12 @@ public class PlayerController : MonoBehaviour {
             m_collider.height = nextHeight;
         }
         m_collider.center = Vector3.up * m_collider.height * 0.5f;
+    }
+
+    private void HandleBufferedJump() {
+        // Jump if buffering
+        if (m_isBufferingJump && m_isGrounded)
+            DoJump();
     }
 
     private bool UnderSlopeLimit(Vector3 normal) {
