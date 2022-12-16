@@ -18,6 +18,10 @@ public class PlayerController : MonoBehaviour {
     // --- Public members (!!! PLEASE, REMEMBER TO PUT TOOLTIPS !!!)
     [Header("Camera")]
     [Range(0f, 1f)] public float cameraHeight = 0.85f;
+    [Range(0f, 1f)] public float cameraHeightOnLanding = 0.75f;
+    [Range(0f, 1f)] public float landingSmoothing = 0.25f;
+    [Range(0f, 1f)] public float landingSmoothingReset = 0.25f;
+    [Min(0f)] public float landingVelocityUpperLimit = 5;
 
     [Header("Movement")]
     [Min(0f)] public float maxMovementSpeed = 5f;
@@ -67,6 +71,8 @@ public class PlayerController : MonoBehaviour {
     private WeaponController m_weaponController;
     private float m_cameraPitch;
     private float m_cameraYaw;
+    private float m_cameraHeightCurrent;
+    private float m_cameraHeightTarget;
     private float m_standingCapsuleHeight;
     private float m_targetCapsuleHeight;
     private float m_minGroundDotProduct;
@@ -113,6 +119,7 @@ public class PlayerController : MonoBehaviour {
         m_stepsSinceLastJump = 0;
         m_jumpPhase = 0;
         m_thrustPhase = 0;
+        m_cameraHeightTarget = m_cameraHeightCurrent = cameraHeight;
         OnValidate();
 
         // Freeze rigidbody's rotation and disable implicit gravity
@@ -157,19 +164,27 @@ public class PlayerController : MonoBehaviour {
     }
 
     void LateUpdate() {
+        // Update camera's height
+        m_cameraHeightCurrent = Mathf.Lerp(m_cameraHeightCurrent, m_cameraHeightTarget, landingSmoothing);
+        m_cameraHeightTarget = Mathf.Lerp(m_cameraHeightTarget, cameraHeight, landingSmoothingReset);
+
         // Update camera's transform here
-        m_cameraHolder.transform.position = transform.position + transform.up * m_collider.height * cameraHeight;
+        m_cameraHolder.transform.position = transform.position + transform.up * m_collider.height * m_cameraHeightCurrent;
         m_cameraHolder.transform.eulerAngles = Vector3.up * m_cameraYaw + Vector3.right * m_cameraPitch;
     }
 
     void OnCollisionEnter(Collision col) {
         // Add contacts to contact points' list
-        m_contactPoints.AddRange(col.contacts);
+        ContactPoint[] contacts = new ContactPoint[col.contactCount];
+        col.GetContacts(contacts);
+        m_contactPoints.AddRange(contacts);
     }
 
     void OnCollisionStay(Collision col) {
         // Add contacts to contact points' list
-        m_contactPoints.AddRange(col.contacts);
+        ContactPoint[] contacts = new ContactPoint[col.contactCount];
+        col.GetContacts(contacts);
+        m_contactPoints.AddRange(contacts);
     }
 
     private void OnDrawGizmos() {
@@ -364,8 +379,11 @@ public class PlayerController : MonoBehaviour {
         // Inform weapon animator about the ground state and whether the player has landed or not
         if (m_weaponController) {
             m_weaponController.SetGrounded(m_isGrounded);
-            if (previousGrounded != m_isGrounded)
+            if (previousGrounded != m_isGrounded) {
                 m_weaponController.TriggerLand();
+                float landingForce = 1f - Mathf.Clamp01(Mathf.Abs(m_rigidbody.velocity.y) / landingVelocityUpperLimit);
+                m_cameraHeightTarget = Mathf.Lerp(cameraHeightOnLanding, cameraHeight, landingForce);
+            }
         }
     }
 
