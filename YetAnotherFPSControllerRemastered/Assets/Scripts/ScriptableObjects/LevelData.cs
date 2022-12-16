@@ -1,6 +1,6 @@
 using UnityEngine;
 
-[CreateAssetMenu(menuName = "Antarctica/LevelData")]
+[CreateAssetMenu(menuName = "Scriptable Object/LevelData")]
 public class LevelData : ScriptableObject {
     [Header("Scene Information")]
     public string sceneName;

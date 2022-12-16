@@ -1,8 +1,16 @@
 /** Luigi Rapetta (2022) */
 
-public static class ConstantManager {
+public static class Constants {
+    #region Tags
+    public const string TAG_PLAYER = "Player";
+    #endregion
+
     #region Layers
     public const string LAYER_PLAYER = "Player";
+    #endregion
+
+    #region Events
+    public const string EVENT_SCENELOADED = "SceneLoaded";
     #endregion
 
     #region Animator Parameters

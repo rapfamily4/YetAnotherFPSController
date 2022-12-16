@@ -55,10 +55,10 @@ public class WeaponController : MonoBehaviour {
         m_animator = GetComponentInChildren<Animator>();
 
         // Fetch the IDs of the animator's parameters
-        m_isGroundedID = Animator.StringToHash(ConstantManager.ANIMPARAM_ISGROUNDED);
-        m_relativeHorizontalVelocityID = Animator.StringToHash(ConstantManager.ANIMPARAM_RELATIVEHORIZONTALVELOCITY);
-        m_jumpID = Animator.StringToHash(ConstantManager.ANIMPARAM_JUMP);
-        m_landID = Animator.StringToHash(ConstantManager.ANIMPARAM_LAND);
+        m_isGroundedID = Animator.StringToHash(Constants.ANIMPARAM_ISGROUNDED);
+        m_relativeHorizontalVelocityID = Animator.StringToHash(Constants.ANIMPARAM_RELATIVEHORIZONTALVELOCITY);
+        m_jumpID = Animator.StringToHash(Constants.ANIMPARAM_JUMP);
+        m_landID = Animator.StringToHash(Constants.ANIMPARAM_LAND);
 
         // Store original position
         m_originalPosition = transform.localPosition;
