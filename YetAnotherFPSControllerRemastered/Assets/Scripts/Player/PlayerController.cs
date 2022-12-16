@@ -142,7 +142,7 @@ public class PlayerController : MonoBehaviour {
         // Keep movement coherent
         ContactCheck();
         ApplyGravity();
-        ApplyHorizontalMovement();
+        ApplyMovement();
 
         // Reset contact points' list
         m_contactPoints.Clear();
@@ -446,7 +446,7 @@ public class PlayerController : MonoBehaviour {
         m_rigidbody.AddForce(-m_groundNormal * customGravity, ForceMode.Force);
     }
 
-    public void ApplyHorizontalMovement() {
+    public void ApplyMovement() {
         // Abort if...
         if (!m_isGrounded && m_moveInput.sqrMagnitude == 0) return;
 
@@ -456,12 +456,13 @@ public class PlayerController : MonoBehaviour {
         Vector3 targetVelocity = targetDirection * targetMagnitude;
 
         // Compute horizontal velocity and inform weapon animator about it
-        Vector3 currentVelocity = new Vector3(m_rigidbody.velocity.x, 0f, m_rigidbody.velocity.z); // Consider horizontal velocity in this case
+        Vector3 currentHorizontalVelocity = new Vector3(m_rigidbody.velocity.x, 0f, m_rigidbody.velocity.z); // Consider horizontal velocity in this case
+        Vector3 currentHorizontalDirection = currentHorizontalVelocity.normalized;
         if (m_weaponController)
-            m_weaponController.SetRelativeHorizontalVelocity(currentVelocity.magnitude / maxMovementSpeed);
+            m_weaponController.SetRelativeHorizontalVelocity(currentHorizontalVelocity.magnitude / maxMovementSpeed);
 
         // Calculate dot product between the current horizontal velocity and the target
-        float dot = Vector3.Dot(currentVelocity.normalized, targetDirection);
+        float dot = Vector3.Dot(currentHorizontalDirection, targetDirection);
 
         // Calculate max acceleration
         float sharpTurnMultiplier = ((airborneSharpTurn || m_isGrounded) && dot < 0) ? Mathf.Lerp(1f, maxSharpTurnMultiplier, -dot) : 1f;
@@ -469,19 +470,21 @@ public class PlayerController : MonoBehaviour {
 
         // Process target velocity
         if (m_isGrounded) {
+            // Project the target onto the plane
+            targetVelocity = targetMagnitude * ProjectOnPlane(targetVelocity, m_groundNormal).normalized;
+
             // Use velocities parallel to the contact plane (slope handling)
             // NOTE: This is crucial for getting a correct velocity difference (dv).
-            targetVelocity = targetMagnitude * ProjectOnPlane(targetVelocity, m_groundNormal).normalized;
-            currentVelocity = ProjectOnPlane(m_rigidbody.velocity, m_groundNormal);
+            currentHorizontalVelocity = ProjectOnPlane(m_rigidbody.velocity, m_groundNormal);
         } else {
             // Modify target velocity while airborne in order to keep horizontal speed
-            float currentMagnitude = currentVelocity.magnitude;
-            if (currentMagnitude > maxMovementSpeed)
-                targetVelocity = Vector3.ClampMagnitude(currentVelocity * Mathf.Clamp01(dot) + targetVelocity, currentMagnitude);
+            float currentHorizontalMagnitude = currentHorizontalVelocity.magnitude;
+            if (currentHorizontalMagnitude > maxMovementSpeed)
+                targetVelocity = Vector3.ClampMagnitude(currentHorizontalVelocity * Mathf.Clamp01(dot) + targetVelocity, currentHorizontalMagnitude);
         }
 
         // Calculate acceleration to apply
-        Vector3 accelerationToApply = (targetVelocity - currentVelocity) / Time.deltaTime; // (dv / dt) = a
+        Vector3 accelerationToApply = (targetVelocity - currentHorizontalVelocity) / Time.deltaTime; // (dv / dt) = a
         accelerationToApply = Vector3.ClampMagnitude(accelerationToApply, maxAcceleration);
 
         // If steeped and not grounded, remove the component of the acceleration towards the steep
