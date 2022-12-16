@@ -649,11 +649,6 @@ PrefabInstance:
       propertyPath: m_LocalPosition.y
       value: 1
       objectReference: {fileID: 0}
-    - target: {fileID: 6897817150033344100, guid: 9228bd811b55b3f44951d4b07cc62a9b,
-        type: 3}
-      propertyPath: enableWallJump
-      value: 1
-      objectReference: {fileID: 0}
     - target: {fileID: 6897817150033344102, guid: 9228bd811b55b3f44951d4b07cc62a9b,
         type: 3}
       propertyPath: m_RootOrder
