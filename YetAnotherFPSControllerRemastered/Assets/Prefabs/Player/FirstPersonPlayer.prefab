@@ -387,6 +387,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   cameraHeight: 0.85
+  cameraHeightOnLanding: 0.65
+  landingSmoothing: 8
+  landingSmoothingReset: 2
+  landingVelocityUpperLimit: 12
   maxMovementSpeed: 5
   acceleration: 45
   maxSharpTurnMultiplier: 2

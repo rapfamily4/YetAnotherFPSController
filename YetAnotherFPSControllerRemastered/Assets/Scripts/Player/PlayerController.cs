@@ -19,8 +19,8 @@ public class PlayerController : MonoBehaviour {
     [Header("Camera")]
     [Range(0f, 1f)] public float cameraHeight = 0.85f;
     [Range(0f, 1f)] public float cameraHeightOnLanding = 0.75f;
-    [Range(0f, 1f)] public float landingSmoothing = 0.25f;
-    [Range(0f, 1f)] public float landingSmoothingReset = 0.25f;
+    [Min(0f)] public float landingSmoothing = 0.25f;
+    [Min(0f)] public float landingSmoothingReset = 0.25f;
     [Min(0f)] public float landingVelocityUpperLimit = 5;
 
     [Header("Movement")]
@@ -71,6 +71,8 @@ public class PlayerController : MonoBehaviour {
     private WeaponController m_weaponController;
     private float m_cameraPitch;
     private float m_cameraYaw;
+    private float m_landingSmoothingElapsed;
+    private float m_landingSmoothingResetElapsed;
     private float m_cameraHeightCurrent;
     private float m_cameraHeightTarget;
     private float m_standingCapsuleHeight;
@@ -87,16 +89,17 @@ public class PlayerController : MonoBehaviour {
     private bool m_isSteeped= false;
     private bool m_isCrouching = false;
     private bool m_isBufferingJump = false;
-    private List<ContactPoint> m_contactPoints;
+    private List<ContactPointWrapper> m_contactPoints;
     private Vector2 m_lookInput;
     private Vector3 m_moveInput;
     private Vector3 m_groundNormal;
+    private Vector3 m_groundRelativeVelocity;
     private Vector3 m_steepNormal;
 
     // --- Private constants
     private const float k_sphereCastRadiusScale = 0.99f;
     private const float k_dotBias = 1.414214e-6f; // It mitigates floating point imprecision in UnderSlopeLimit
-    private const float k_positionBias = 0.0001f; // Useful for defining the immediate surrounding of a point.
+    private const float k_nearZeroThreshold = 0.0001f; // Useful for defining the immediate surrounding of a point.
     private const float k_minSteepDotProduct = -0.01f;
     private const int k_groundStepsThreshold = 1;
     private const int k_jumpStepsThreshold = 5;
@@ -112,7 +115,7 @@ public class PlayerController : MonoBehaviour {
 
         // Setup state
         m_moveInput = Vector3.zero;
-        m_contactPoints = new List<ContactPoint>();
+        m_contactPoints = new List<ContactPointWrapper>();
         m_standingCapsuleHeight = m_collider.height;
         m_coyoteTimeCounter = 0f;
         m_stepsSinceLastGrounded = 0;
@@ -120,6 +123,8 @@ public class PlayerController : MonoBehaviour {
         m_jumpPhase = 0;
         m_thrustPhase = 0;
         m_cameraHeightTarget = m_cameraHeightCurrent = cameraHeight;
+        m_landingSmoothingElapsed = landingSmoothing;
+        m_landingSmoothingResetElapsed = landingSmoothingReset;
         OnValidate();
 
         // Freeze rigidbody's rotation and disable implicit gravity
@@ -165,8 +170,18 @@ public class PlayerController : MonoBehaviour {
 
     void LateUpdate() {
         // Update camera's height
-        m_cameraHeightCurrent = Mathf.Lerp(m_cameraHeightCurrent, m_cameraHeightTarget, landingSmoothing);
-        m_cameraHeightTarget = Mathf.Lerp(m_cameraHeightTarget, cameraHeight, landingSmoothingReset);
+        if (m_landingSmoothingElapsed < landingSmoothing) {
+            m_landingSmoothingElapsed += Time.deltaTime;
+            if (m_landingSmoothingElapsed >= landingSmoothing) 
+                m_landingSmoothingElapsed = landingSmoothing;
+        }
+        if (m_landingSmoothingResetElapsed < landingSmoothingReset) {
+            m_landingSmoothingResetElapsed += Time.deltaTime;
+            if (m_landingSmoothingResetElapsed >= landingSmoothingReset)
+                m_landingSmoothingResetElapsed = landingSmoothingReset;
+        }
+        m_cameraHeightCurrent = Mathf.Lerp(m_cameraHeightCurrent, m_cameraHeightTarget, m_landingSmoothingElapsed / landingSmoothing);
+        m_cameraHeightTarget = Mathf.Lerp(m_cameraHeightTarget, cameraHeight, m_landingSmoothingResetElapsed / landingSmoothingReset);
 
         // Update camera's transform here
         m_cameraHolder.transform.position = transform.position + transform.up * m_collider.height * m_cameraHeightCurrent;
@@ -177,14 +192,16 @@ public class PlayerController : MonoBehaviour {
         // Add contacts to contact points' list
         ContactPoint[] contacts = new ContactPoint[col.contactCount];
         col.GetContacts(contacts);
-        m_contactPoints.AddRange(contacts);
+        foreach (ContactPoint contact in contacts)
+            m_contactPoints.Add(new ContactPointWrapper(contact, col.relativeVelocity));
     }
 
     void OnCollisionStay(Collision col) {
         // Add contacts to contact points' list
         ContactPoint[] contacts = new ContactPoint[col.contactCount];
         col.GetContacts(contacts);
-        m_contactPoints.AddRange(contacts);
+        foreach (ContactPoint contact in contacts)
+            m_contactPoints.Add(new ContactPointWrapper(contact, col.relativeVelocity));
     }
 
     private void OnDrawGizmos() {
@@ -200,7 +217,7 @@ public class PlayerController : MonoBehaviour {
 
         // Draw contact points
         Gizmos.color = Color.red;
-        foreach (ContactPoint cp in m_contactPoints) {
+        foreach (ContactPointWrapper cp in m_contactPoints) {
             Gizmos.DrawSphere(cp.point, 0.05f);
             Gizmos.DrawLine(cp.point, cp.point + cp.normal * 0.5f);
         }
@@ -332,14 +349,17 @@ public class PlayerController : MonoBehaviour {
         // Return if the player just jumped
         if (m_stepsSinceLastJump < k_jumpStepsThreshold) {
             m_groundNormal = Vector3.up;
+            m_groundRelativeVelocity = Vector3.zero;
             m_steepNormal = Vector3.up;
             return;
         }
 
         // Check if grounded or steeped, building the respective normals
         m_groundNormal = Vector3.zero;
+        m_groundRelativeVelocity = Vector3.zero;
         m_steepNormal = Vector3.zero;
-        foreach (ContactPoint cp in m_contactPoints) {
+        float groundedCounter = 0;
+        foreach (ContactPointWrapper cp in m_contactPoints) {
             Vector3 normal = cp.normal;
             if (UnderSlopeLimit(normal)) {
                 m_isGrounded = true;
@@ -348,6 +368,8 @@ public class PlayerController : MonoBehaviour {
                 m_coyoteTimeCounter = 0f;
                 m_stepsSinceLastGrounded = 0;
                 m_groundNormal += normal;
+                m_groundRelativeVelocity += cp.relativeVelocity;
+                groundedCounter++;
             }
             if (UnderSteepLimit(normal)) {
                 m_isSteeped = true;
@@ -359,9 +381,11 @@ public class PlayerController : MonoBehaviour {
         if (m_isSteeped) m_steepNormal.Normalize();
         else m_steepNormal = Vector3.up; // Set a default value
 
-        // Consolidate steep normal
-        if (m_isGrounded) m_groundNormal.Normalize();
-        else {
+        // Consolidate ground normal and relative velocity
+        if (m_isGrounded) {
+            m_groundNormal.Normalize();
+            m_groundRelativeVelocity /= groundedCounter;
+        } else {
             // Try to snap on ground or ckeck a crevasse
             m_groundNormal = Vector3.up;  // Set a default value
             m_isGrounded = SnapToGround() || CheckCrevasse(); // If true, then m_groundNormal gets updated inisde either SnapToGround or CheckCrevasse
@@ -379,9 +403,11 @@ public class PlayerController : MonoBehaviour {
         // Inform weapon animator about the ground state and whether the player has landed or not
         if (m_weaponController) {
             m_weaponController.SetGrounded(m_isGrounded);
+            // Is the player landing on ground?
             if (previousGrounded != m_isGrounded) {
                 m_weaponController.TriggerLand();
-                float landingForce = 1f - Mathf.Clamp01(Mathf.Abs(m_rigidbody.velocity.y) / landingVelocityUpperLimit);
+                m_landingSmoothingElapsed = m_landingSmoothingResetElapsed = 0f;
+                float landingForce = 1f - Mathf.Clamp01(Mathf.Abs(m_groundRelativeVelocity.y) / landingVelocityUpperLimit);
                 m_cameraHeightTarget = Mathf.Lerp(cameraHeightOnLanding, cameraHeight, landingForce);
             }
         }
@@ -416,10 +442,10 @@ public class PlayerController : MonoBehaviour {
         // NOTE: The hit normal of the sphere cast may come from the edge of this platform,
         //       which may be under the slope limit. This check is very similar to the one
         //       of step detection.
-        Vector3 rayOrigin = new Vector3(transform.position.x, sphereHitInfo.point.y - k_positionBias, transform.position.z);
+        Vector3 rayOrigin = new Vector3(transform.position.x, sphereHitInfo.point.y - k_nearZeroThreshold, transform.position.z);
         Vector3 rayDistance = ProjectOnPlane(sphereHitInfo.point - transform.position, Vector3.up);
         if (Vector3.Dot(m_rigidbody.velocity, rayDistance) < 0f &&
-            !Physics.Raycast(transform.position, Vector3.down, transform.position.y - sphereHitInfo.point.y + k_positionBias, ~layersToIgnore) && // The next raycast has to have nothing above its origin
+            !Physics.Raycast(transform.position, Vector3.down, transform.position.y - sphereHitInfo.point.y + k_nearZeroThreshold, ~layersToIgnore) && // The next raycast has to have nothing above its origin
             (!Physics.Raycast(rayOrigin, rayDistance.normalized, out RaycastHit rayHitInfo, rayDistance.magnitude, ~layersToIgnore) ||
              !UnderSlopeLimit(rayHitInfo.normal))) return false;
 
