@@ -55,6 +55,7 @@ public class PlayerController : MonoBehaviour {
     [Min(0f)] public float crouchTransitionSpeed = 10f;
 
     [Header("Thrust")]
+    public bool enableThrust = true;
     [Min(0f)] public float thrustHeight = 6f;
     [Range(0f, 1f)] public float thrustVerticalBias = 0.25f;
 
@@ -295,6 +296,9 @@ public class PlayerController : MonoBehaviour {
     }
 
     public void DoThrust() {
+        // Return if thrust is disabled
+        if (!enableThrust) return;
+
         // Compute thrust direction
         Vector3 thrustDirection = (m_cameraHolder.transform.forward + transform.right * m_moveInput.x).normalized;
         float dot = Mathf.Clamp01(Vector3.Dot(transform.forward, m_cameraHolder.transform.forward));
