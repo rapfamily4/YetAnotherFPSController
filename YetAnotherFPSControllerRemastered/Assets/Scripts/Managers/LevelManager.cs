@@ -56,11 +56,12 @@ public class LevelManager : MonoBehaviour {
 
     public LevelData FindCurrentLevelData() {
         string sceneName = SceneManager.GetActiveScene().name;
-        foreach (LevelData levelData in Resources.FindObjectsOfTypeAll(typeof(LevelData)))
+        foreach (LevelData levelData in Resources.FindObjectsOfTypeAll<LevelData>())
             if (sceneName.Equals(levelData.sceneName)) {
                 Debug.Log("LevelManager.FindCurrentLevelData() found a LevelData of sceneName \"" + sceneName + "\"");
                 return levelData;
             }
+            
         Debug.LogError("LevelManager.FindCurrentLevelData() couldn't find a LevelData of sceneName \"" + sceneName + "\"");
         return null;
     }
