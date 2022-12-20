@@ -3,6 +3,9 @@ using UnityEngine.SceneManagement;
 
 
 public class LevelManager : MonoBehaviour {
+    // --- Public members
+    public LevelData levelDataInitializer = null;
+
     // --- Public properties
     public LevelData currentLevel { get; private set; }
     public bool isCurrentlyLoading { get; private set; }
@@ -12,7 +15,7 @@ public class LevelManager : MonoBehaviour {
     private void Awake() {
         // If m_currentLevel is null, initialize it with levelDataInitializer
         if (!currentLevel)
-            currentLevel = FindCurrentLevelData();
+            currentLevel = levelDataInitializer;
     }
 
     private void OnEnable() {
@@ -52,18 +55,6 @@ public class LevelManager : MonoBehaviour {
         Scene activeScene = SceneManager.GetActiveScene();
         Debug.Log("LevelManager.ReloadCurrentLevel() on scene \"" + activeScene.name + "\"");
         SceneManager.LoadScene(activeScene.buildIndex);
-    }
-
-    public LevelData FindCurrentLevelData() {
-        string sceneName = SceneManager.GetActiveScene().name;
-        foreach (LevelData levelData in Resources.FindObjectsOfTypeAll<LevelData>())
-            if (sceneName.Equals(levelData.sceneName)) {
-                Debug.Log("LevelManager.FindCurrentLevelData() found a LevelData of sceneName \"" + sceneName + "\"");
-                return levelData;
-            }
-            
-        Debug.LogError("LevelManager.FindCurrentLevelData() couldn't find a LevelData of sceneName \"" + sceneName + "\"");
-        return null;
     }
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode loadMode) {

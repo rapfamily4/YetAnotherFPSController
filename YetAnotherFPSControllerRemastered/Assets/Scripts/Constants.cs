@@ -19,4 +19,8 @@ public static class Constants {
     public const string ANIMPARAM_JUMP = "Jump";
     public const string ANIMPARAM_LAND = "Land";
     #endregion
+
+    #region Paths
+    public const string PATH_SCENES = "Assets/Scenes";
+    #endregion
 }
