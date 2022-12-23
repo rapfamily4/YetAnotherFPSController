@@ -7,6 +7,7 @@ public static class Constants {
 
     #region Layers
     public const string LAYER_PLAYER = "Player";
+    public const string LAYER_FIRSTPERSONMODEL = "FirstPersonModel";
     #endregion
 
     #region Events
