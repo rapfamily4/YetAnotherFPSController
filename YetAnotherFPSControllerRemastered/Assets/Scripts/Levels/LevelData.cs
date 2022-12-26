@@ -1,5 +1,6 @@
 using UnityEngine;
 
+
 [CreateAssetMenu(menuName = "Scriptable Object/LevelData")]
 public class LevelData : ScriptableObject {
     [Header("Scene Information")]
