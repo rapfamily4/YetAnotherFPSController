@@ -540,6 +540,16 @@ PrefabInstance:
       propertyPath: m_Name
       value: FirstPersonPlayer
       objectReference: {fileID: 0}
+    - target: {fileID: 9092803007808947040, guid: 9228bd811b55b3f44951d4b07cc62a9b,
+        type: 3}
+      propertyPath: giveAllAtStart
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 9092803007808947040, guid: 9228bd811b55b3f44951d4b07cc62a9b,
+        type: 3}
+      propertyPath: startupBehaviour
+      value: 2
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 9228bd811b55b3f44951d4b07cc62a9b, type: 3}
 --- !u!43 &173237595

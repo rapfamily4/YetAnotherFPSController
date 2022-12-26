@@ -12,6 +12,11 @@ public static class Constants {
 
     #region Events
     public const string EVENT_SCENELOADED = "SceneLoaded";
+    public const string EVENT_WEAPONSLOTSMODIFIED = "WeaponSlotsModified";
+    #endregion
+
+    #region Custom Editor Properties
+    public const string EDITORPROP_WEAPONSLOTS = "weaponSlots";
     #endregion
 
     #region Animator Parameters
