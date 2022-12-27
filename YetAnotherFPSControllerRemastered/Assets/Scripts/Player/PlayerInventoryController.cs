@@ -17,14 +17,14 @@ public class PlayerInventoryController : MonoBehaviour {
     [SerializeField] private StartupBehaviour startupBehaviour;
 
     // --- Private members
-    private Camera m_camera;
+    private Camera m_cameraHolder;
     private WeaponController[] m_weaponInstances = null;
 
 
     // --- MonoBehaviour methods
     private void Awake() {
         // Retrieve references
-        m_camera = GetComponentInChildren<Camera>();
+        m_cameraHolder = GetComponentInChildren<Camera>();
     }
 
     private void OnEnable() {
@@ -59,7 +59,7 @@ public class PlayerInventoryController : MonoBehaviour {
         for (int i = 0; i < weaponInventory.weaponSlots.Length; i++) {
             WeaponController weaponPrefab = weaponInventory.weaponSlots[i].weaponPrefab;
             if (weaponPrefab) {
-                WeaponController newInstance = Instantiate(weaponPrefab, m_camera.transform);
+                WeaponController newInstance = Instantiate(weaponPrefab, m_cameraHolder.transform);
                 newInstance.gameObject.SetActive(false);
                 m_weaponInstances[i] = newInstance;
             }

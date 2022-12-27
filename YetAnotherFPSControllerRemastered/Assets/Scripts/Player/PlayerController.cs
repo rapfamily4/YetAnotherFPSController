@@ -185,8 +185,10 @@ public class PlayerController : MonoBehaviour {
         m_cameraHeightTarget = Mathf.Lerp(m_cameraHeightTarget, cameraHeight, m_landingSmoothingResetElapsed / landingSmoothingReset);
 
         // Update camera's transform here
-        m_cameraHolder.transform.position = transform.position + transform.up * m_collider.height * m_cameraHeightCurrent;
-        m_cameraHolder.transform.eulerAngles = Vector3.up * m_cameraYaw + Vector3.right * m_cameraPitch;
+        m_cameraHolder.transform.SetPositionAndRotation(
+            transform.position + transform.up * m_collider.height * m_cameraHeightCurrent,
+            Quaternion.Euler(Vector3.up * m_cameraYaw + Vector3.right * m_cameraPitch)
+        );
     }
 
     void OnCollisionEnter(Collision col) {
