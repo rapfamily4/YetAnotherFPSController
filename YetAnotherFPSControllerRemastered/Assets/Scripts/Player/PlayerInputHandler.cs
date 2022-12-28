@@ -48,6 +48,8 @@ public class PlayerInputHandler : MonoBehaviour {
         // Crouch callbacks
         m_controls.Player.Crouch.started   += ctx => { if (!toggleCrouch) m_controller.DoCrouch(true); else m_controller.DoCrouch(!m_controller.isCrouching); };
         m_controls.Player.Crouch.canceled  += ctx => { if (!toggleCrouch) m_controller.DoCrouch(false); };
+        // Weapon selection callbacks
+
 
         // Setup state
         OnValidate();

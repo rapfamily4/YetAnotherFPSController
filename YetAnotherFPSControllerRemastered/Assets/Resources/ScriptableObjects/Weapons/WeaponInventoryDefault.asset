@@ -13,10 +13,9 @@ MonoBehaviour:
   m_Name: WeaponInventoryDefault
   m_EditorClassIdentifier: 
   weaponSlots:
-  - weaponPrefab: {fileID: 2606026982811260535, guid: 66e3ec22abe82634dabade9b12ea2c20,
+  - weaponPrefab: {fileID: 2606026982811260535, guid: 1845d02efc5b2e840beaf5017486c1c9,
       type: 3}
     available: 0
   - weaponPrefab: {fileID: 2606026982811260535, guid: 66e3ec22abe82634dabade9b12ea2c20,
       type: 3}
     available: 0
-  currentWeapon: -1

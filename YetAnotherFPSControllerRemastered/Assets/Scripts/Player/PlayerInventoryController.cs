@@ -38,31 +38,36 @@ public class PlayerInventoryController : MonoBehaviour {
     private void Start() {
         // Execute startup behaviour
         if (startupBehaviour != StartupBehaviour.KeepAll)
-            for (int i = 0; i < weaponInventory.weaponSlots.Length; i++)
-                weaponInventory.weaponSlots[i].available = (startupBehaviour == StartupBehaviour.GiveAll ? true : false);
+            for (int i = 0; i < weaponInventory.weaponSlotsNumber; i++)
+                weaponInventory.SetWeaponAvailability(i, startupBehaviour == StartupBehaviour.GiveAll ? true : false); // If not GiveAll, then it's ResetAll
 
         // Instantiate weapons
         InstantiateWeaponPrefabs();
     }
 
     // --- PlayerInventoryController methods
-    public void InstantiateWeaponPrefabs() {
+    private void InstantiateWeaponPrefabs() {
         // Destroy previously instantiated weapons
         if (m_weaponInstances != null)
             foreach (WeaponController weaponInstance in m_weaponInstances)
                 if (weaponInstance) Destroy(weaponInstance.gameObject);
 
         // Initialize new weapon instances array
-        m_weaponInstances = new WeaponController[weaponInventory.weaponSlots.Length];
+        int weaponSlotsNumber = weaponInventory.weaponSlotsNumber;
+        m_weaponInstances = new WeaponController[weaponSlotsNumber];
 
         // Instantiate new weapons
-        for (int i = 0; i < weaponInventory.weaponSlots.Length; i++) {
-            WeaponController weaponPrefab = weaponInventory.weaponSlots[i].weaponPrefab;
+        for (int i = 0; i < weaponSlotsNumber; i++) {
+            WeaponController weaponPrefab = weaponInventory.GetWeaponPrefab(i);
             if (weaponPrefab) {
                 WeaponController newInstance = Instantiate(weaponPrefab, m_cameraHolder.transform);
                 newInstance.gameObject.SetActive(false);
                 m_weaponInstances[i] = newInstance;
             }
         }
+    }
+
+    private void SelectWeapon(int index) {
+
     }
 }
