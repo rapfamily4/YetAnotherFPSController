@@ -1,0 +1,47 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 71f77a17f4afd8841b541d869e76a285, type: 3}
+  m_Name: WeaponMovementAnimationsDefault
+  m_EditorClassIdentifier: 
+  idleBobAmount: 0.0125
+  idleSwayAmount: 1
+  idleFrequency: 0.25
+  idleNoiseAmount: {x: 0.6, y: 0.6, z: 0.6}
+  idleNoiseSpeed: 0.8
+  movementBobTranslationAmount: {x: 0.01, y: 0.01, z: 0.01}
+  movementBobRotationAmount: {x: 1, y: 0.5, z: 1}
+  movementBobSmoothing: 0.035
+  movementBobResetSmoothing: 0.1
+  movementPanAmount: {x: 0.025, y: 0.025}
+  movementPanSmoothing: 0.1
+  movementPanResetSmoothing: 0.1
+  invertMovementPanX: 1
+  invertMovementPanY: 1
+  movementSwayAmount: {x: 2, y: 2}
+  movementSwaySmoothing: 0.1
+  movementSwayResetSmoothing: 0.1
+  invertMovementSwayX: 1
+  invertMovementSwayY: 0
+  viewSwayAmount: {x: 1, y: 1, z: 1}
+  viewSwayClamp: {x: 2, y: 2, z: 2}
+  viewSwaySmoothing: 0.1
+  viewSwayResetSmoothing: 0.1
+  invertViewSwayX: 0
+  invertViewSwayY: 0
+  invertViewSwayZ: 0
+  elasticity: 100
+  damping: 8
+  jumpVelocity: 1.25
+  landingVelocity: 0.75
+  thrustVelocity: 1.25
+  rotationAmountOnVerticalAxis: 70
+  rotationAmountOnHorizontalPlane: {x: 35, y: 35, z: 35}

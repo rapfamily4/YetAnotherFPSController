@@ -1,0 +1,21 @@
+fileFormatVersion: 2
+guid: f3375968bcd289f4aa00b0abbda1284d
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - muzzlePivot: {instanceID: 0}
+  - primaryFire: {instanceID: 0}
+  - secondaryFire: {instanceID: 0}
+  - weaponEnabledEventChannel: {fileID: 11400000, guid: d651bb1b78ce9b1d28d34991ae8c4111,
+      type: 2}
+  - weaponDisabledEventChannel: {fileID: 11400000, guid: c3a9e1642b1f76d8bb89e0d0affa0fc0,
+      type: 2}
+  - weaponUnequippedEventChannel: {fileID: 11400000, guid: cd63ac7a2a95cd949a87d9104b5dd90a,
+      type: 2}
+  - owner: {instanceID: 0}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

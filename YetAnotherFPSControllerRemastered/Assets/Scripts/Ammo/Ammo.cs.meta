@@ -1,0 +1,13 @@
+fileFormatVersion: 2
+guid: d28078d6d01ae5938839a8360d92c652
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - AmmoAmountChanged: {fileID: 11400000, guid: 3242792c902de57ed91a27e288fad712,
+      type: 2}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

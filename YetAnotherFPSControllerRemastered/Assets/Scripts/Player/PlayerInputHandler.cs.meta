@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 3ff7d91f4fe92d148827ee440271a665
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - playerControlsChannel: {fileID: 11400000, guid: 492798557bae2a244a5f7e88fc1e4c57,
+      type: 2}
+  - weaponUnequippedEventChannel: {fileID: 11400000, guid: cd63ac7a2a95cd949a87d9104b5dd90a,
+      type: 2}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

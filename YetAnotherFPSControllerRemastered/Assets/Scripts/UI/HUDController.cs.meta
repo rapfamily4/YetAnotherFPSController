@@ -1,0 +1,23 @@
+fileFormatVersion: 2
+guid: 01440e3d7cea2c74ea86f093b990897c
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - serializableHealthObject: {fileID: 11400000, guid: 81d115a1f9eb35448b83417ac36fd535,
+      type: 2}
+  - weaponInventory: {fileID: 11400000, guid: 6af73636daaf2af43b9269973e30391d, type: 2}
+  - weaponEnabledEventChannel: {fileID: 11400000, guid: d651bb1b78ce9b1d28d34991ae8c4111,
+      type: 2}
+  - weaponUnequippedEventChannel: {fileID: 11400000, guid: cd63ac7a2a95cd949a87d9104b5dd90a,
+      type: 2}
+  - ammoAmountChangedEventChannel: {fileID: 11400000, guid: 3242792c902de57ed91a27e288fad712,
+      type: 2}
+  - healthDisplay: {instanceID: 0}
+  - ammoDisplay: {instanceID: 0}
+  - altAmmoDisplay: {instanceID: 0}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

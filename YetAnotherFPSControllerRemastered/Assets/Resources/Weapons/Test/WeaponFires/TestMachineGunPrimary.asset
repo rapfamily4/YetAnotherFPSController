@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8bc1ec35e82580147af06fe489b10ba7, type: 3}
+  m_Name: TestMachineGunPrimary
+  m_EditorClassIdentifier: 
+  type: 1
+  projectilePool: {fileID: 11400000, guid: 425968884bcb43f44b8134e033927b9c, type: 2}
+  projectilesFired: 1
+  spreadAngle: 3.5
+  delay: 0.08
+  ammoType: {fileID: 11400000, guid: 4d1ff8046d20352b4843bd6b89ce9efa, type: 2}
+  ammoPerShot: 1
+  canInterruptOtherFireMode: 0
+  burstShots: 1
+  burstDelay: 0

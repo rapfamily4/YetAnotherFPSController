@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a194664acb19a4345b796477dc644218, type: 3}
+  m_Name: TestProjectile2Settings
+  m_EditorClassIdentifier: 
+  damage: 10
+  radius: 0.125
+  root: 0
+  tip: 0
+  hittableLayers:
+    serializedVersion: 2
+    m_Bits: 2147483647
+  trajectoryCorrectionDistance: -1
+  speed: 30
+  gravityAcceleration: 14
+  drag: 0
+  numberOfBounces: -1
+  impactElasticity: 0.7
+  timeToLive: 5
+  hitWhenTimeExpires: 0
+  trailPool: {fileID: 11400000, guid: bb9b2e71d62ae1d459744ecf0f599124, type: 2}
